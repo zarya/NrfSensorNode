@@ -60,25 +60,24 @@ SUI_DeclareString(settings_help, "Perform setup and config");
 SUI_DeclareString(info_key,"information");
 SUI_DeclareString(info_help, "Retrieve data and current settings");
 
-SUI_DeclareString(settings_devid_key, "deviceid");
-SUI_DeclareString(settings_devid_help, "Set dev ID [int]");
+SUI_DeclareString(settings_devid_key, "nodeid");
+SUI_DeclareString(settings_devid_help, "Set node ID [int]");
 
 SUI_DeclareString(settings_channel_key, "channel");
 SUI_DeclareString(settings_channel_help, "Set dev channel [int]");
 
 SUI_DeclareString(settings_p0_key, "p0");
-SUI_DeclareString(settings_p0_help, "Enable/Disable Pulse interrupt 0 [0/1]");
+SUI_DeclareString(settings_p0_help, "Pulse interrupt 0 [0/1]");
 
 SUI_DeclareString(settings_p1_key, "p1");
-SUI_DeclareString(settings_p1_help, "Enable/Disable Pulse interrupt 1 [0/1]");
+SUI_DeclareString(settings_p1_help, "Pulse interrupt 1 [0/1]");
 
 SUI_DeclareString(settings_1w_key, "1w");
-SUI_DeclareString(settings_1w_help, "Enable/Disable One Wire [0/1]");
+SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
 
 SUI_DeclareString(settings_show_key, "show");
 
 SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
-#define dev_id_maxlen  30
 
 // Structure of our payload
 struct payload_t
@@ -311,30 +310,15 @@ void set_1w()
 void setupMenus()
 {
   SUI::Menu * mainMenu = mySUI.topLevelMenu();
-  if (! mainMenu)
-  {
-    return mySUI.returnError("Something is very wrong, could not get top level menu?");
-  }
-
   mainMenu->setName(top_menu_title);
-  if (! mainMenu->addCommand(info_key, show_info, info_help) )
-  {
-    return mySUI.returnError("Could not addCommand to mainMenu?");
-  }
-
   SUI::Menu * settingsMenu = mainMenu->subMenu(settings_key, settings_help);
-  if (! settingsMenu)
-  {
-    return mySUI.returnError("Couldn't create settings menu!?"); 
-  }  else {
-    settingsMenu->setName(settings_title);
-    settingsMenu->addCommand(settings_devid_key, set_devid, settings_devid_help);
-    settingsMenu->addCommand(settings_channel_key, set_channel, settings_channel_help);
-    settingsMenu->addCommand(settings_p0_key, set_p0, settings_p0_help);
-    settingsMenu->addCommand(settings_p1_key, set_p1, settings_p1_help);
-    settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
-    settingsMenu->addCommand(settings_show_key, show_info);
-  }
+  settingsMenu->setName(settings_title);
+  settingsMenu->addCommand(settings_devid_key, set_devid, settings_devid_help);
+  settingsMenu->addCommand(settings_channel_key, set_channel, settings_channel_help);
+  settingsMenu->addCommand(settings_p0_key, set_p0, settings_p0_help);
+  settingsMenu->addCommand(settings_p1_key, set_p1, settings_p1_help);
+  settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
+  settingsMenu->addCommand(settings_show_key, show_info);
 }
 
 void loadConfig() {
@@ -343,10 +327,10 @@ void loadConfig() {
       EEPROM.read(CONFIG_START + 2) == CONFIG_VERSION[2]) {
     for (unsigned int t=0; t<sizeof(NodeConfig); t++)
       *((char*)&NodeConfig + t) = EEPROM.read(CONFIG_START + t);
-      }
-      else {
-        Serial.println("Config corrupted please use the ");
-      }
+  }
+  else {
+    Serial.println("Config corrupted please use the ");
+  }
 }
 
 void saveConfig() {
