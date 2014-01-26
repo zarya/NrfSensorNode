@@ -1,9 +1,13 @@
+#include "config.h"
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
 #include <OneWire.h>
 #include "printf.h"
+
+#ifdef CONFIG_MENU
 #include <SerialUI.h>
+#endif
 #include <EEPROM.h>
 
 #define serial_baud_rate           57600
@@ -48,6 +52,7 @@ unsigned long P1cycle = 0;
 
 OneWire  ds(5);
 
+#ifdef CONFIG_MENU
 //Define menu
 SUI_DeclareString(device_greeting,"+++ Welcome to the sensor node +++");
 
@@ -78,6 +83,7 @@ SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
 SUI_DeclareString(settings_show_key, "show");
 
 SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
+#endif
 
 // Structure of our payload
 struct payload_t
@@ -90,12 +96,14 @@ struct payload_t
 
 void setup(void)
 {
+#ifdef CONFIG_MENU
   mySUI.begin(serial_baud_rate);
   mySUI.setTimeout(20000);
   mySUI.setMaxIdleMs(30000);
-  mySUI.setReadTerminator(serial_input_terminator);  
-  loadConfig();
+  mySUI.setReadTerminator(serial_input_terminator);
   setupMenus();
+#endif 
+  loadConfig();
   SPI.begin();
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
@@ -144,6 +152,7 @@ void Pulse_1() {
 
 void loop(void)
 {
+#ifdef CONFIG_MENU
   if (mySUI.checkForUser(150))
   {
     mySUI.enter();
@@ -153,13 +162,14 @@ void loop(void)
     }
 
   }
+#endif
   network.update();
   if (NodeConfig.onewire) {
     get_onewire();
   }
-  for (int x=0; x <= 100; x++){
+  for (int x=0; x <= 500; x++){
     network.update();
-    delay(100);
+    delay(10);
   }
 }
 
@@ -237,6 +247,7 @@ void get_onewire(void)
   ds.reset_search();
 }
 
+#ifdef CONFIG_MENU
 void show_info()
 {
   SUI::Menu * current_menu = mySUI.currentMenu();
@@ -320,6 +331,7 @@ void setupMenus()
   settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
   settingsMenu->addCommand(settings_show_key, show_info);
 }
+#endif
 
 void loadConfig() {
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
