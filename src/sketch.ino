@@ -4,11 +4,11 @@
 #include <SPI.h>
 #include <OneWire.h>
 #include "printf.h"
+#include <EEPROM.h>
 
 #ifdef CONFIG_MENU
 #include <SerialUI.h>
 #endif
-#include <EEPROM.h>
 
 #define serial_baud_rate           57600
 #define serial_input_terminator   '\n'
@@ -21,7 +21,7 @@
 #define NETWORK_MASTER 0
 
 // ID of the settings block
-#define CONFIG_VERSION "ls2"
+#define CONFIG_VERSION "nc1"
 
 // Tell it where to store your config data in EEPROM
 #define CONFIG_START 32
@@ -37,11 +37,13 @@ typedef struct deviceInfo {
   uint16_t NetworkNodeID;
   boolean p0;
   boolean p1;
+  uint16_t p0_debounce;
+  uint16_t p1_debounce;
   boolean onewire;
 } 
 deviceInfo;
 
-deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,true};
+deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,1500,1500,true};
 
 unsigned long P0previous = 0;
 unsigned long P0cycle = 0;
@@ -54,16 +56,16 @@ OneWire  ds(5);
 
 #ifdef CONFIG_MENU
 //Define menu
-SUI_DeclareString(device_greeting,"+++ Welcome to the sensor node +++");
+SUI_DeclareString(device_greeting,"+++ Config");
 
-SUI_DeclareString(top_menu_title, "Sensor node Menu");
+SUI_DeclareString(top_menu_title, "Sensor Menu");
 
 SUI_DeclareString(settings_title, "Node Settings");
 SUI_DeclareString(settings_key, "settings");
 SUI_DeclareString(settings_help, "Perform setup and config");
 
 SUI_DeclareString(info_key,"information");
-SUI_DeclareString(info_help, "Retrieve data and current settings");
+SUI_DeclareString(info_help, "show settings");
 
 SUI_DeclareString(settings_devid_key, "nodeid");
 SUI_DeclareString(settings_devid_help, "Set node ID [int]");
@@ -76,6 +78,12 @@ SUI_DeclareString(settings_p0_help, "Pulse interrupt 0 [0/1]");
 
 SUI_DeclareString(settings_p1_key, "p1");
 SUI_DeclareString(settings_p1_help, "Pulse interrupt 1 [0/1]");
+
+SUI_DeclareString(settings_p0_debounce_key, "p0debounce");
+SUI_DeclareString(settings_p0_debounce_help, "Pulse interrupt 0 debounce [0-65535]");
+
+SUI_DeclareString(settings_p1_debounce_key, "p1debounce");
+SUI_DeclareString(settings_p1_debounce_help, "Pulse interrupt 1 debounce [0-65535]");
 
 SUI_DeclareString(settings_1w_key, "1w");
 SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
@@ -125,7 +133,7 @@ void Pulse_0() {
     unsigned long P0now = millis();
     unsigned long P0time = P0now - P0previous;
     
-    if (P0time < DEBOUNCE_P0) return;
+    if (P0time < NodeConfig.p0_debounce) return;
 
     P0previous = P0now;
     Serial.println("P0 Pulse");
@@ -139,7 +147,7 @@ void Pulse_1() {
     unsigned long P1now = millis();
     unsigned long P1time = P1now - P1previous;
     
-    if (P1time < DEBOUNCE_P1) return;
+    if (P1time < NodeConfig.p1_debounce) return;
 
     P1previous = P1now;
 
@@ -259,6 +267,10 @@ void show_info()
   mySUI.println(NodeConfig.p0);
   mySUI.print("Pulse interrupt 1 enabled: ");
   mySUI.println(NodeConfig.p1);
+  mySUI.print("Pulse interrupt 0 debounce: ");
+  mySUI.println(NodeConfig.p0_debounce);
+  mySUI.print("Pulse interrupt 1 debounce: ");
+  mySUI.println(NodeConfig.p1_debounce);
   mySUI.print("OneWire enabled: ");
   mySUI.println(NodeConfig.onewire);
 }
@@ -308,6 +320,26 @@ void set_p1()
   mySUI.returnOK();
 }
 
+void set_p0_debounce()
+{
+  mySUI.showEnterNumericDataPrompt();
+  uint16_t debounce = mySUI.parseInt();
+  NodeConfig.p0_debounce = debounce;
+  mySUI.println(NodeConfig.p0_debounce, DEC);
+  saveConfig();
+  mySUI.returnOK();
+}
+
+void set_p1_debounce()
+{
+  mySUI.showEnterNumericDataPrompt();
+  uint16_t debounce = mySUI.parseInt();
+  NodeConfig.p1_debounce = debounce;
+  mySUI.println(NodeConfig.p1_debounce, DEC);
+  saveConfig();
+  mySUI.returnOK();
+}
+
 void set_1w()
 {
   mySUI.showEnterNumericDataPrompt();
@@ -320,14 +352,14 @@ void set_1w()
 
 void setupMenus()
 {
-  SUI::Menu * mainMenu = mySUI.topLevelMenu();
-  mainMenu->setName(top_menu_title);
-  SUI::Menu * settingsMenu = mainMenu->subMenu(settings_key, settings_help);
+  SUI::Menu * settingsMenu = mySUI.topLevelMenu();
   settingsMenu->setName(settings_title);
   settingsMenu->addCommand(settings_devid_key, set_devid, settings_devid_help);
   settingsMenu->addCommand(settings_channel_key, set_channel, settings_channel_help);
   settingsMenu->addCommand(settings_p0_key, set_p0, settings_p0_help);
   settingsMenu->addCommand(settings_p1_key, set_p1, settings_p1_help);
+  settingsMenu->addCommand(settings_p0_debounce_key, set_p0_debounce, settings_p0_debounce_help);
+  settingsMenu->addCommand(settings_p1_debounce_key, set_p1_debounce, settings_p1_debounce_help);
   settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
   settingsMenu->addCommand(settings_show_key, show_info);
 }
