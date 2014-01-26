@@ -21,7 +21,7 @@
 #define NETWORK_MASTER 0
 
 // ID of the settings block
-#define CONFIG_VERSION "nc1"
+#define CONFIG_VERSION "nc2"
 
 // Tell it where to store your config data in EEPROM
 #define CONFIG_START 32
@@ -37,13 +37,13 @@ typedef struct deviceInfo {
   uint16_t NetworkNodeID;
   boolean p0;
   boolean p1;
-  uint16_t p0_debounce;
-  uint16_t p1_debounce;
+  int p0_debounce;
+  int p1_debounce;
   boolean onewire;
 } 
 deviceInfo;
 
-deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,1500,1500,true};
+deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,15,15,true};
 
 unsigned long P0previous = 0;
 unsigned long P0cycle = 0;
@@ -58,14 +58,9 @@ OneWire  ds(5);
 //Define menu
 SUI_DeclareString(device_greeting,"+++ Config");
 
-SUI_DeclareString(top_menu_title, "Sensor Menu");
-
 SUI_DeclareString(settings_title, "Node Settings");
 SUI_DeclareString(settings_key, "settings");
 SUI_DeclareString(settings_help, "Perform setup and config");
-
-SUI_DeclareString(info_key,"information");
-SUI_DeclareString(info_help, "show settings");
 
 SUI_DeclareString(settings_devid_key, "nodeid");
 SUI_DeclareString(settings_devid_help, "Set node ID [int]");
@@ -80,10 +75,10 @@ SUI_DeclareString(settings_p1_key, "p1");
 SUI_DeclareString(settings_p1_help, "Pulse interrupt 1 [0/1]");
 
 SUI_DeclareString(settings_p0_debounce_key, "p0debounce");
-SUI_DeclareString(settings_p0_debounce_help, "Pulse interrupt 0 debounce [0-65535]");
+SUI_DeclareString(settings_p0_debounce_help, "Pulse interrupt 0 debounce [0-255] * 100");
 
 SUI_DeclareString(settings_p1_debounce_key, "p1debounce");
-SUI_DeclareString(settings_p1_debounce_help, "Pulse interrupt 1 debounce [0-65535]");
+SUI_DeclareString(settings_p1_debounce_help, "Pulse interrupt 1 debounce [0-255] * 100");
 
 SUI_DeclareString(settings_1w_key, "1w");
 SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
@@ -133,7 +128,7 @@ void Pulse_0() {
     unsigned long P0now = millis();
     unsigned long P0time = P0now - P0previous;
     
-    if (P0time < NodeConfig.p0_debounce) return;
+    if (P0time < NodeConfig.p0_debounce * 100) return;
 
     P0previous = P0now;
     Serial.println("P0 Pulse");
@@ -147,7 +142,7 @@ void Pulse_1() {
     unsigned long P1now = millis();
     unsigned long P1time = P1now - P1previous;
     
-    if (P1time < NodeConfig.p1_debounce) return;
+    if (P1time < NodeConfig.p1_debounce * 100) return;
 
     P1previous = P1now;
 
@@ -191,66 +186,65 @@ void get_onewire(void)
   byte addr[8];
   
   while (ds.search(addr)) {
-    
-  
-  if (OneWire::crc8(addr, 7) != addr[7]) {
-      return;
-  }
-  
-  // the first ROM byte indicates which chip
-  switch (addr[0]) {
-    case 0x10:
-      type_s = 1;
-      break;
-    case 0x28:
-      type_s = 0;
-      break;
-    case 0x22:
-      type_s = 0;
-      break;
-    default:
-      return;
-  } 
+      if (OneWire::crc8(addr, 7) != addr[7]) {
+          return;
+      }
+      
+      // the first ROM byte indicates which chip
+      switch (addr[0]) {
+        case 0x10:
+          type_s = 1;
+          break;
+        case 0x28:
+          type_s = 0;
+          break;
+        case 0x22:
+          type_s = 0;
+          break;
+        default:
+          return;
+      } 
 
-  ds.reset();
-  ds.select(addr);
-  ds.write(0x44,1);
-  for (int x=0; x <= 150; x++){
-    network.update();
-    delay(10);
-  }
-  
-  present = ds.reset();
-  ds.select(addr);    
-  ds.write(0xBE);
-  
-  for ( i = 0; i < 9; i++) {           // we need 9 bytes
-    data[i] = ds.read();
-  }
+      ds.reset();
+      ds.select(addr);
+      ds.write(0x44,1);
+      for (int x=0; x <= 150; x++){
+        network.update();
+        delay(10);
+      }
+      
+      present = ds.reset();
+      ds.select(addr);    
+      ds.write(0xBE);
+      
+      for ( i = 0; i < 9; i++) {           // we need 9 bytes
+        data[i] = ds.read();
+      }
 
-  unsigned int raw = (data[1] << 8) | data[0];
-  if (type_s) {
-    raw = raw << 3; // 9 bit resolution default
-    if (data[7] == 0x10) {
-      // count remain gives full 12 bit resolution
-      raw = (raw & 0xFFF0) + 12 - data[6];
-    }
-  } else {
-    byte cfg = (data[4] & 0x60);
-    if (cfg == 0x00) raw = raw << 3;  // 9 bit resolution, 93.75 ms
-    else if (cfg == 0x20) raw = raw << 2; // 10 bit res, 187.5 ms
-    else if (cfg == 0x40) raw = raw << 1; // 11 bit res, 375 ms
-    // default is 12 bit resolution, 750 ms conversion time
-  }
-  celsius = (float)raw / 16.0;
-  Serial.print(addr[7]);
-  Serial.print("  Temperature = ");
-  Serial.println(celsius);
-  
-  float temperatuur = celsius * 100;
-  payload_t payload = { 'T', (uint8_t) addr[7], (uint16_t) temperatuur }; 
-  RF24NetworkHeader header(NETWORK_MASTER);
-  bool ok = network.write(header,&payload,sizeof(payload));
+      unsigned int raw = (data[1] << 8) | data[0];
+      if (type_s) {
+        raw = raw << 3; // 9 bit resolution default
+        if (data[7] == 0x10) {
+          // count remain gives full 12 bit resolution
+          raw = (raw & 0xFFF0) + 12 - data[6];
+        }
+      } else {
+        byte cfg = (data[4] & 0x60);
+        if (cfg == 0x00) raw = raw << 3;  // 9 bit resolution, 93.75 ms
+        else if (cfg == 0x20) raw = raw << 2; // 10 bit res, 187.5 ms
+        else if (cfg == 0x40) raw = raw << 1; // 11 bit res, 375 ms
+        // default is 12 bit resolution, 750 ms conversion time
+      }
+      celsius = (float)raw / 16.0;
+      Serial.print(addr[7]);
+      Serial.print("  Temperature = ");
+      Serial.println(celsius);
+      
+      float temperatuur = celsius * 100;
+      payload_t payload = { 'T', (uint8_t) addr[7], (uint16_t) temperatuur }; 
+      RF24NetworkHeader header(NETWORK_MASTER);
+      bool ok = network.write(header,&payload,sizeof(payload));
+      delay(20);
   }
   ds.reset_search();
 }
@@ -280,7 +274,6 @@ void set_devid()
   mySUI.showEnterNumericDataPrompt();
   int new_id = mySUI.parseInt();
   NodeConfig.NetworkNodeID = new_id;
-  //network._channel = NodeConfig.NetworkNodeID;
   mySUI.println("Reboot the device to make the change available");
   mySUI.println(NodeConfig.NetworkNodeID, DEC);
   saveConfig();
@@ -323,7 +316,7 @@ void set_p1()
 void set_p0_debounce()
 {
   mySUI.showEnterNumericDataPrompt();
-  uint16_t debounce = mySUI.parseInt();
+  int debounce = mySUI.parseInt();
   NodeConfig.p0_debounce = debounce;
   mySUI.println(NodeConfig.p0_debounce, DEC);
   saveConfig();
@@ -333,7 +326,7 @@ void set_p0_debounce()
 void set_p1_debounce()
 {
   mySUI.showEnterNumericDataPrompt();
-  uint16_t debounce = mySUI.parseInt();
+  int debounce = mySUI.parseInt();
   NodeConfig.p1_debounce = debounce;
   mySUI.println(NodeConfig.p1_debounce, DEC);
   saveConfig();
@@ -373,7 +366,7 @@ void loadConfig() {
       *((char*)&NodeConfig + t) = EEPROM.read(CONFIG_START + t);
   }
   else {
-    Serial.println("Config corrupted please use the ");
+    Serial.println("Config corrupted");
   }
 }
 
