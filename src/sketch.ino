@@ -2,17 +2,20 @@
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
-#include <OneWire.h>
 #include "printf.h"
 #include <EEPROM.h>
 
-#if DHT == 11
+#ifdef CONFIG_ONEWIRE
+#include <OneWire.h>
+#endif
+
+#if CONFIG_DHT == 11
 #include <Dht11.h>
 #endif
-#if DHT == 21
+#if CONFIG_DHT == 21
 #include <Dht21.h>
 #endif
-#if DHT == 22
+#if CONFIG_DHT == 22
 #include <Dht22.h>
 #endif
 
@@ -24,9 +27,6 @@
 #define serial_input_terminator   '\n'
 
 #define MS_PER_HOUR    3.6e6
-
-#define DEBOUNCE_P0 1500
-#define DEBOUNCE_P1 1500
 
 #define NETWORK_MASTER 0
 
@@ -40,6 +40,11 @@ RF24 radio(8,7);
 
 // Network uses that radio
 RF24Network network(radio);
+
+#ifdef CONFIG_ONEWIRE
+//Enable onewire on pin 5
+OneWire  ds(5);
+#endif
 
 typedef struct deviceInfo {
   char version[4];
@@ -57,14 +62,11 @@ deviceInfo;
 //Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,1w,a0,a1,a2,a3,a4,a5,a6,a7,dht
 deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0};
 
+//Storage for Interrupt pins
 unsigned long P0previous = 0;
 unsigned long P0cycle = 0;
-
 unsigned long P1previous = 0;
 unsigned long P1cycle = 0;
-
-
-OneWire  ds(5);
 
 #ifdef CONFIG_MENU
 //Define menu
@@ -92,10 +94,12 @@ SUI_DeclareString(settings_p0_debounce_help, "Pulse interrupt 0 debounce [0-255]
 SUI_DeclareString(settings_p1_debounce_key, "p1debounce");
 SUI_DeclareString(settings_p1_debounce_help, "Pulse interrupt 1 debounce [0-255] * 100");
 
+#ifdef CONFIG_ONEWIRE
 SUI_DeclareString(settings_1w_key, "1w");
 SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
+#endif
 
-#ifdef DHT
+#ifdef CONFIG_DHT
 SUI_DeclareString(settings_dht_key, "dht");
 SUI_DeclareString(settings_dht_help, "Set DHT pin 0 for disable");
 #endif
@@ -136,7 +140,7 @@ void setup(void)
   if (NodeConfig.p1) {
     attachInterrupt(1, Pulse_1, RISING);
   }
-  
+
   Serial.println("Sensor node v2 starting up\n\r Press ? for config");
   delay(2000);
 }
@@ -184,9 +188,13 @@ void loop(void)
   }
 #endif
   network.update();
+
+#ifdef CONFIG_ONEWIRE
   if (NodeConfig.onewire) {
     get_onewire();
   }
+#endif
+
   int i;
   for (i = 0; i < 8; i = i + 1) {
     if (NodeConfig.analog_pin_enable[i] > 0) {
@@ -194,15 +202,15 @@ void loop(void)
     }
   }
   //Read DHT
-#ifdef DHT
+#ifdef CONFIG_DHT
   if (NodeConfig.dht > 0) {
-#if DHT == 11
+#if CONFIG_DHT == 11
     static Dht11 dht(NodeConfig.dht);
 #endif
-#if DHT == 21
+#if CONFIG_DHT == 21
     static Dht21 dht(NodeConfig.dht);
 #endif
-#if DHT == 22
+#if CONFIG_DHT == 22
     static Dht22 dht(NodeConfig.dht);
 #endif
     readDHTSensor(dht);
@@ -215,6 +223,7 @@ void loop(void)
   }
 }
 
+#ifdef CONFIG_ONEWIRE
 void get_onewire(void)
 {
   float celsius, fahrenheit;
@@ -287,6 +296,7 @@ void get_onewire(void)
   }
   ds.reset_search();
 }
+#endif
 
 #ifdef CONFIG_MENU
 void show_info()
@@ -374,6 +384,7 @@ void set_p1_debounce()
   mySUI.returnOK();
 }
 
+#ifdef CONFIG_ONEWIRE
 void set_1w()
 {
   mySUI.showEnterNumericDataPrompt();
@@ -383,8 +394,9 @@ void set_1w()
   saveConfig();
   mySUI.returnOK();
 }
+#endif
 
-#ifdef DHT
+#ifdef CONFIG_DHT
 void set_dht()
 {
   mySUI.showEnterNumericDataPrompt();
@@ -406,8 +418,10 @@ void setupMenus()
   settingsMenu->addCommand(settings_p1_key, set_p1, settings_p1_help);
   settingsMenu->addCommand(settings_p0_debounce_key, set_p0_debounce, settings_p0_debounce_help);
   settingsMenu->addCommand(settings_p1_debounce_key, set_p1_debounce, settings_p1_debounce_help);
+#ifdef CONFIG_ONEWIRE
   settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
-#ifdef DHT
+#endif
+#ifdef CONFIG_DHT
   settingsMenu->addCommand(settings_dht_key, set_dht, settings_dht_help);
 #endif
   settingsMenu->addCommand(settings_show_key, show_info);
@@ -438,7 +452,7 @@ void read_analog(int pin) {
     bool ok = network.write(header,&payload,sizeof(payload));
 }
 
-#ifdef DHT
+#ifdef CONFIG_DHT
 void readDHTSensor(Dht& sensor) {
     if (sensor.read() == Dht::OK){ 
         Serial.print("Humidity (%): ");
