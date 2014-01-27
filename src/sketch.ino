@@ -6,6 +6,16 @@
 #include "printf.h"
 #include <EEPROM.h>
 
+#if DHT == 11
+#include <Dht11.h>
+#endif
+#if DHT == 21
+#include <Dht21.h>
+#endif
+#if DHT == 22
+#include <Dht22.h>
+#endif
+
 #ifdef CONFIG_MENU
 #include <SerialUI.h>
 #endif
@@ -21,7 +31,7 @@
 #define NETWORK_MASTER 0
 
 // ID of the settings block
-#define CONFIG_VERSION "nc2"
+#define CONFIG_VERSION "nc4"
 
 // Tell it where to store your config data in EEPROM
 #define CONFIG_START 32
@@ -40,10 +50,12 @@ typedef struct deviceInfo {
   int p0_debounce;
   int p1_debounce;
   boolean onewire;
+  int analog_pin_enable[8];
+  int dht;
 } 
 deviceInfo;
-
-deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,15,15,true};
+//Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,1w,a0,a1,a2,a3,a4,a5,a6,a7,dht
+deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0};
 
 unsigned long P0previous = 0;
 unsigned long P0cycle = 0;
@@ -82,6 +94,11 @@ SUI_DeclareString(settings_p1_debounce_help, "Pulse interrupt 1 debounce [0-255]
 
 SUI_DeclareString(settings_1w_key, "1w");
 SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
+
+#ifdef DHT
+SUI_DeclareString(settings_dht_key, "dht");
+SUI_DeclareString(settings_dht_help, "Set DHT pin 0 for disable");
+#endif
 
 SUI_DeclareString(settings_show_key, "show");
 
@@ -170,6 +187,28 @@ void loop(void)
   if (NodeConfig.onewire) {
     get_onewire();
   }
+  int i;
+  for (i = 0; i < 8; i = i + 1) {
+    if (NodeConfig.analog_pin_enable[i] > 0) {
+        read_analog(i);
+    }
+  }
+  //Read DHT
+#ifdef DHT
+  if (NodeConfig.dht > 0) {
+#if DHT == 11
+    static Dht11 dht(NodeConfig.dht);
+#endif
+#if DHT == 21
+    static Dht21 dht(NodeConfig.dht);
+#endif
+#if DHT == 22
+    static Dht22 dht(NodeConfig.dht);
+#endif
+    readDHTSensor(dht);
+  }
+#endif
+  
   for (int x=0; x <= 500; x++){
     network.update();
     delay(10);
@@ -262,11 +301,13 @@ void show_info()
   mySUI.print("Pulse interrupt 1 enabled: ");
   mySUI.println(NodeConfig.p1);
   mySUI.print("Pulse interrupt 0 debounce: ");
-  mySUI.println(NodeConfig.p0_debounce);
+  mySUI.println(NodeConfig.p0_debounce * 100);
   mySUI.print("Pulse interrupt 1 debounce: ");
-  mySUI.println(NodeConfig.p1_debounce);
+  mySUI.println(NodeConfig.p1_debounce * 100);
   mySUI.print("OneWire enabled: ");
   mySUI.println(NodeConfig.onewire);
+  mySUI.print("DHT pin: ");
+  mySUI.println(NodeConfig.dht);
 }
 
 void set_devid()
@@ -343,6 +384,18 @@ void set_1w()
   mySUI.returnOK();
 }
 
+#ifdef DHT
+void set_dht()
+{
+  mySUI.showEnterNumericDataPrompt();
+  boolean new_dht = mySUI.parseInt();
+  NodeConfig.dht = new_dht;
+  mySUI.println(NodeConfig.dht, DEC);
+  saveConfig();
+  mySUI.returnOK();
+}
+#endif
+
 void setupMenus()
 {
   SUI::Menu * settingsMenu = mySUI.topLevelMenu();
@@ -354,6 +407,9 @@ void setupMenus()
   settingsMenu->addCommand(settings_p0_debounce_key, set_p0_debounce, settings_p0_debounce_help);
   settingsMenu->addCommand(settings_p1_debounce_key, set_p1_debounce, settings_p1_debounce_help);
   settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
+#ifdef DHT
+  settingsMenu->addCommand(settings_dht_key, set_dht, settings_dht_help);
+#endif
   settingsMenu->addCommand(settings_show_key, show_info);
 }
 #endif
@@ -374,3 +430,32 @@ void saveConfig() {
   for (unsigned int t=0; t<sizeof(NodeConfig); t++)
     EEPROM.write(CONFIG_START + t, *((char*)&NodeConfig + t));
 }
+
+void read_analog(int pin) {
+    int data = analogRead(pin);
+    payload_t payload = { 'A', (uint8_t) pin, (uint16_t) data };
+    RF24NetworkHeader header(NETWORK_MASTER);
+    bool ok = network.write(header,&payload,sizeof(payload));
+}
+
+#ifdef DHT
+void readDHTSensor(Dht& sensor) {
+    if (sensor.read() == Dht::OK){ 
+        Serial.print("Humidity (%): ");
+        Serial.println(sensor.getHumidity());
+
+        Serial.print("Temperature (C): ");
+        Serial.println(sensor.getTemperature());
+
+        float temp = sensor.getHumidity() * 100;
+        payload_t payloadT = { 'T', (uint8_t) NodeConfig.dht, (uint16_t) temp };
+        RF24NetworkHeader headerT(NETWORK_MASTER);
+        network.write(headerT,&payloadT,sizeof(payloadT));
+
+        float humd = sensor.getTemperature() * 100;
+        payload_t payloadH = { 'H', (uint8_t) NodeConfig.dht, (uint16_t) humd };
+        RF24NetworkHeader headerH(NETWORK_MASTER);
+        network.write(headerH,&payloadH,sizeof(payloadH));
+    }
+}
+#endif
