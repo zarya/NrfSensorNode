@@ -55,7 +55,7 @@ typedef struct deviceInfo {
   int p0_debounce;
   int p1_debounce;
   boolean onewire;
-  int analog_pin_enable[8];
+  int analog[8];
   int dht;
 } 
 deviceInfo;
@@ -101,8 +101,11 @@ SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
 
 #ifdef CONFIG_DHT
 SUI_DeclareString(settings_dht_key, "dht");
-SUI_DeclareString(settings_dht_help, "Set DHT pin 0 for disable");
+SUI_DeclareString(settings_dht_help, "Set DHT D[2,3,4,6,9,10] 0 for disable");
 #endif
+
+SUI_DeclareString(settings_analog_key, "analog");
+SUI_DeclareString(settings_analog_help, "Set A[0-7] 0 for disable");
 
 SUI_DeclareString(settings_show_key, "show");
 
@@ -115,7 +118,6 @@ struct payload_t
   char type;
   uint8_t sensor;
   uint16_t value;
-  
 };
 
 void setup(void)
@@ -197,7 +199,7 @@ void loop(void)
 
   int i;
   for (i = 0; i < 8; i = i + 1) {
-    if (NodeConfig.analog_pin_enable[i] > 0) {
+    if (NodeConfig.analog[i] > 0) {
         read_analog(i);
     }
   }
@@ -318,6 +320,13 @@ void show_info()
   mySUI.println(NodeConfig.onewire);
   mySUI.print("DHT pin: ");
   mySUI.println(NodeConfig.dht);
+  mySUI.println("        01234567");
+  mySUI.print("Analog: ");
+  int i;
+  for (i = 0; i < 8; i = i ++) {
+    mySUI.print(NodeConfig.analog[i]);
+  }
+  mySUI.println("");
 }
 
 void set_devid()
@@ -384,6 +393,23 @@ void set_p1_debounce()
   mySUI.returnOK();
 }
 
+void set_analog()
+{
+  mySUI.print("Pin:");
+  mySUI.showEnterNumericDataPrompt();
+  int pin = mySUI.parseInt();
+  if (pin < 8) {
+    mySUI.println("\n[0-1] disable or enable");
+    mySUI.showEnterNumericDataPrompt();
+    NodeConfig.analog[pin] = mySUI.parseInt();
+    mySUI.println(NodeConfig.analog[pin],DEC);
+    saveConfig();
+    mySUI.returnOK();
+  } else {
+    mySUI.returnError("invallid pin");
+  }
+}
+
 #ifdef CONFIG_ONEWIRE
 void set_1w()
 {
@@ -401,10 +427,12 @@ void set_dht()
 {
   mySUI.showEnterNumericDataPrompt();
   boolean new_dht = mySUI.parseInt();
-  NodeConfig.dht = new_dht;
-  mySUI.println(NodeConfig.dht, DEC);
-  saveConfig();
-  mySUI.returnOK();
+  if (new_dht == 0 or new_dht == 2 or new_dht == 3 or new_dht == 4 or new_dht == 6 or new_dht == 9 or new_dht == 10){
+      NodeConfig.dht = new_dht;
+    mySUI.println(NodeConfig.dht, DEC);
+    saveConfig();
+    mySUI.returnOK();
+  }else mySUI.returnError("invallid pin");
 }
 #endif
 
@@ -424,6 +452,7 @@ void setupMenus()
 #ifdef CONFIG_DHT
   settingsMenu->addCommand(settings_dht_key, set_dht, settings_dht_help);
 #endif
+  settingsMenu->addCommand(settings_analog_key, set_analog, settings_analog_help);
   settingsMenu->addCommand(settings_show_key, show_info);
 }
 #endif
