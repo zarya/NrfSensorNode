@@ -46,6 +46,7 @@ RF24Network network(radio);
 OneWire  ds(5);
 #endif
 
+//Node Configuration struct
 typedef struct deviceInfo {
   char version[4];
   uint16_t NetworkChannel;
@@ -147,6 +148,7 @@ void setup(void)
   delay(2000);
 }
 
+//P0 Interrupt function
 void Pulse_0() {
     unsigned long P0now = millis();
     unsigned long P0time = P0now - P0previous;
@@ -161,6 +163,7 @@ void Pulse_0() {
     P1cycle++;
 }
 
+//P1 Interrupt function
 void Pulse_1() {
     unsigned long P1now = millis();
     unsigned long P1time = P1now - P1previous;
@@ -179,6 +182,7 @@ void Pulse_1() {
 void loop(void)
 {
 #ifdef CONFIG_MENU
+  //Start config menu
   if (mySUI.checkForUser(150))
   {
     mySUI.enter();
@@ -191,18 +195,21 @@ void loop(void)
 #endif
   network.update();
 
+  //Read onewire on D5
 #ifdef CONFIG_ONEWIRE
   if (NodeConfig.onewire) {
     get_onewire();
   }
 #endif
 
+  //Read the enabled analog pins
   int i;
   for (i = 0; i < 8; i = i + 1) {
     if (NodeConfig.analog[i] > 0) {
         read_analog(i);
     }
   }
+
   //Read DHT
 #ifdef CONFIG_DHT
   if (NodeConfig.dht > 0) {
@@ -218,7 +225,8 @@ void loop(void)
     readDHTSensor(dht);
   }
 #endif
-  
+
+  //Sleep for about 5sec.  
   for (int x=0; x <= 500; x++){
     network.update();
     delay(10);
@@ -228,7 +236,7 @@ void loop(void)
 #ifdef CONFIG_ONEWIRE
 void get_onewire(void)
 {
-  float celsius, fahrenheit;
+  float celsius;
   byte i;
   byte present = 0;
   byte type_s;
@@ -258,7 +266,9 @@ void get_onewire(void)
       ds.reset();
       ds.select(addr);
       ds.write(0x44,1);
-      for (int x=0; x <= 150; x++){
+
+      //Delay 800ms wile doing network updates
+      for (int x=0; x <= 80; x++){
         network.update();
         delay(10);
       }
@@ -457,6 +467,7 @@ void setupMenus()
 }
 #endif
 
+//Load config from EEPROM
 void loadConfig() {
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
       EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] &&
@@ -469,6 +480,7 @@ void loadConfig() {
   }
 }
 
+//Save config to EEPROM
 void saveConfig() {
   for (unsigned int t=0; t<sizeof(NodeConfig); t++)
     EEPROM.write(CONFIG_START + t, *((char*)&NodeConfig + t));
