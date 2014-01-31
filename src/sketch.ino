@@ -118,7 +118,9 @@ struct payload_t
 {
   char type;
   uint8_t sensor;
-  uint16_t value;
+  uint8_t value_high;
+  uint8_t value_low;
+  uint8_t options;
 };
 
 void setup(void)
@@ -157,9 +159,7 @@ void Pulse_0() {
 
     P0previous = P0now;
     Serial.println("P0 Pulse");
-    payload_t payload = { 'P', (uint8_t) 0, (uint16_t) 1 };
-    RF24NetworkHeader header(NETWORK_MASTER);
-    bool ok = network.write(header,&payload,sizeof(payload));
+    send_packet('P', 0, 1, 0);
     P1cycle++;
 }
 
@@ -173,9 +173,7 @@ void Pulse_1() {
     P1previous = P1now;
 
     Serial.println("P1 Pulse");
-    payload_t payload = { 'P', (uint8_t) 1, (uint16_t) 1 };
-    RF24NetworkHeader header(NETWORK_MASTER);
-    bool ok = network.write(header,&payload,sizeof(payload));
+    send_packet('P', 1, 1, 0);
     P1cycle++;
 }
 
@@ -295,15 +293,20 @@ void get_onewire(void)
         else if (cfg == 0x40) raw = raw << 1; // 11 bit res, 375 ms
         // default is 12 bit resolution, 750 ms conversion time
       }
-      celsius = (float)raw / 16.0;
+      int negative = 0;
+      if ( raw & 0x8000 )  {
+        raw ^= 0xffff;
+        raw++;
+        negative = 1;
+      }
+      celsius = (float)raw / 17.0;
       Serial.print(addr[7]);
       Serial.print("  Temperature = ");
+      if (negative) Serial.print("-");
       Serial.println(celsius);
       
       float temperatuur = celsius * 100;
-      payload_t payload = { 'T', (uint8_t) addr[7], (uint16_t) temperatuur }; 
-      RF24NetworkHeader header(NETWORK_MASTER);
-      bool ok = network.write(header,&payload,sizeof(payload));
+      send_packet('T', (uint8_t) addr[7], (int16_t) temperatuur,negative); 
       delay(20);
   }
   ds.reset_search();
@@ -488,9 +491,21 @@ void saveConfig() {
 
 void read_analog(int pin) {
     int data = analogRead(pin);
-    payload_t payload = { 'A', (uint8_t) pin, (uint16_t) data };
+    send_packet('A', (uint8_t) pin, (int16_t) data, 0);
+}
+
+void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
+    Serial.print(_type);
+    Serial.print(_id);
+    Serial.print(_value);
+    Serial.println(options);
+    uint8_t value_low;
+    uint8_t value_high;
+    value_low = (_value & 0xff); 
+    value_high = (_value >> 4) & 0xff;
+    payload_t payload = { _type, _id, value_high, value_low, options };
     RF24NetworkHeader header(NETWORK_MASTER);
-    bool ok = network.write(header,&payload,sizeof(payload));
+    network.write(header,&payload,sizeof(payload));
 }
 
 #ifdef CONFIG_DHT
@@ -503,14 +518,10 @@ void readDHTSensor(Dht& sensor) {
         Serial.println(sensor.getTemperature());
 
         float temp = sensor.getHumidity() * 100;
-        payload_t payloadT = { 'T', (uint8_t) NodeConfig.dht, (uint16_t) temp };
-        RF24NetworkHeader headerT(NETWORK_MASTER);
-        network.write(headerT,&payloadT,sizeof(payloadT));
+        send_packet('T', (uint8_t) NodeConfig.dht, (int16_t) temp, 0);
 
         float humd = sensor.getTemperature() * 100;
-        payload_t payloadH = { 'H', (uint8_t) NodeConfig.dht, (uint16_t) humd };
-        RF24NetworkHeader headerH(NETWORK_MASTER);
-        network.write(headerH,&payloadH,sizeof(payloadH));
+        send_packet('H', (uint8_t) NodeConfig.dht, (int16_t) humd, 0);
     }
 }
 #endif
