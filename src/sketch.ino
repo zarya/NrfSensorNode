@@ -75,7 +75,7 @@ SUI_DeclareString(device_greeting,"+++ Config");
 
 SUI_DeclareString(settings_title, "Node Settings");
 SUI_DeclareString(settings_key, "settings");
-SUI_DeclareString(settings_help, "Perform setup and config");
+SUI_DeclareString(settings_help, "");
 
 SUI_DeclareString(settings_devid_key, "nodeid");
 SUI_DeclareString(settings_devid_help, "Set node ID [int]");
@@ -102,7 +102,7 @@ SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
 
 #ifdef CONFIG_DHT
 SUI_DeclareString(settings_dht_key, "dht");
-SUI_DeclareString(settings_dht_help, "Set DHT D[2,3,4,6,9,10] 0 for disable");
+SUI_DeclareString(settings_dht_help, "Set DHT D[2-4,6,9,10] 0 for disable");
 #endif
 
 SUI_DeclareString(settings_analog_key, "analog");
@@ -160,7 +160,7 @@ void setup(void)
   stdout = &uartout ;
 #endif
 
-  Serial.println("Sensor node v2 starting up\n\r Press ? for config");
+  Serial.println("Bootup");
   delay(2000);
 }
 
@@ -333,15 +333,15 @@ void show_info()
   SUI::Menu * current_menu = mySUI.currentMenu();
   mySUI.print("Device ID: ");
   mySUI.println(NodeConfig.NetworkNodeID);
-  mySUI.print("Network channel: ");
+  mySUI.print("Channel: ");
   mySUI.println(NodeConfig.NetworkChannel);
-  mySUI.print("Pulse interrupt 0 enabled: ");
+  mySUI.print("P0 enabled: ");
   mySUI.println(NodeConfig.p0);
-  mySUI.print("Pulse interrupt 1 enabled: ");
+  mySUI.print("P1 enabled: ");
   mySUI.println(NodeConfig.p1);
-  mySUI.print("Pulse interrupt 0 debounce: ");
+  mySUI.print("P0 debounce: ");
   mySUI.println(NodeConfig.p0_debounce * 100);
-  mySUI.print("Pulse interrupt 1 debounce: ");
+  mySUI.print("P1 debounce: ");
   mySUI.println(NodeConfig.p1_debounce * 100);
   mySUI.print("OneWire enabled: ");
   mySUI.println(NodeConfig.onewire);
