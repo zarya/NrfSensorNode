@@ -527,10 +527,10 @@ void readDHTSensor(Dht& sensor) {
         Serial.print("Temperature (C): ");
         Serial.println(sensor.getTemperature());
 
-        float temp = sensor.getHumidity() * 100;
+        float temp = sensor.getTemperature() * 100;
         send_packet('T', (uint8_t) NodeConfig.dht, (int16_t) temp, 0);
 
-        float humd = sensor.getTemperature() * 100;
+        float humd = sensor.getHumidity() * 100;
         send_packet('H', (uint8_t) NodeConfig.dht, (int16_t) humd, 0);
     }
 }
