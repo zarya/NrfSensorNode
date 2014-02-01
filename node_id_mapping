@@ -1,5 +1,6 @@
 Format: config -> real
-so real 011 is send data from subnode 1 via node 1
+so real 011 == send data from subnode 1 via node 1
+and 0111 == send data from subsubnode 1 via subnode 1 via node 1
 00 -> 00
 01 -> 01
 02 -> 02
