@@ -122,6 +122,14 @@ struct payload_t
   uint8_t value_low;
   uint8_t options;
 };
+#ifdef DEBUG
+static FILE uartout = {0} ;
+static int uart_putchar (char c, FILE *stream)
+{
+    Serial.write(c) ;
+    return 0 ;
+}
+#endif
 
 void setup(void)
 {
@@ -145,6 +153,12 @@ void setup(void)
   if (NodeConfig.p1) {
     attachInterrupt(1, Pulse_1, RISING);
   }
+#ifdef DEBUG
+  fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
+
+  // The uart is the standard output device STDOUT.
+  stdout = &uartout ;
+#endif
 
   Serial.println("Sensor node v2 starting up\n\r Press ? for config");
   delay(2000);
@@ -495,10 +509,6 @@ void read_analog(int pin) {
 }
 
 void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
-    Serial.print(_type);
-    Serial.print(_id);
-    Serial.print(_value);
-    Serial.println(options);
     uint8_t value_low;
     uint8_t value_high;
     value_low = (_value & 0xff); 
