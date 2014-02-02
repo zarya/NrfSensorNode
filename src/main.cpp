@@ -199,7 +199,7 @@ void get_onewire(void)
       }
       celsius = (float)raw / 17.0;
       Serial.print(addr[7]);
-      Serial.print("  Temperature = ");
+      Serial.print(" T = ");
       if (negative) Serial.print("-");
       Serial.println(celsius);
       
@@ -215,10 +215,10 @@ void get_onewire(void)
 //DHT Sensor function
 void readDHTSensor(Dht& sensor) {
     if (sensor.read() == Dht::OK){ 
-        Serial.print("Humidity (%): ");
+        Serial.print("H = ");
         Serial.println(sensor.getHumidity());
 
-        Serial.print("Temperature (C): ");
+        Serial.print("T = ");
         Serial.println(sensor.getTemperature());
 
         float temp = sensor.getTemperature() * 100;
