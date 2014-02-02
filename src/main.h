@@ -38,15 +38,21 @@ struct payload_t
   uint8_t value_low;
   uint8_t options;
 };
-
+#ifdef DEBUG
 static int uart_putchar (char c, FILE *stream);
+#endif
 void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options);
 void loadConfig();
 void saveConfig();
 void Pulse_0();
 void Pulse_1();
+#ifdef CONFIG_ONEWIRE
 void get_onewire(void);
+#endif
+#ifdef CONFIG_DHT
 void readDHTSensor(Dht& sensor);
+#endif
+#ifdef CONFIG_MENU
 void show_info();
 void set_devid();
 void set_channel();
@@ -55,9 +61,14 @@ void set_p1();
 void set_p0_debounce();
 void set_p1_debounce();
 void set_analog();
+#ifdef CONFIG_ONEWIRE
 void set_1w();
+#endif
+#ifdef CONFIG_DHT
 void set_dht();
+#endif
 void setupMenus();
+#endif
 void read_analog(int pin);
 void setup(void);
 void loop(void);
