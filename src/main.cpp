@@ -1,11 +1,11 @@
-#include <arduino.h>
-#include "main.h"
-#include "config.h"
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
-#include "printf.h"
 #include <EEPROM.h>
+
+#include "main.h"
+#include "config.h"
+#include "printf.h"
 
 #ifdef CONFIG_ONEWIRE
 #include <OneWire.h>
@@ -60,41 +60,34 @@ unsigned long P1cycle = 0;
 #ifdef CONFIG_MENU
 //Define menu
 SUI_DeclareString(device_greeting,"+++ Config");
-
 SUI_DeclareString(settings_title, "Node Settings");
 SUI_DeclareString(settings_key, "settings");
 SUI_DeclareString(settings_help, "");
-
 SUI_DeclareString(settings_devid_key, "nodeid");
 SUI_DeclareString(settings_devid_help, "Set node ID [int]");
-
 SUI_DeclareString(settings_channel_key, "channel");
 SUI_DeclareString(settings_channel_help, "Set dev channel [int]");
-
 SUI_DeclareString(settings_p0_key, "p0");
-SUI_DeclareString(settings_p0_help, "Pulse interrupt 0 [0/1]");
-
+SUI_DeclareString(settings_p0_help, "P0 [0/1]");
 SUI_DeclareString(settings_p1_key, "p1");
-SUI_DeclareString(settings_p1_help, "Pulse interrupt 1 [0/1]");
-
+SUI_DeclareString(settings_p1_help, "P1 [0/1]");
 SUI_DeclareString(settings_p0_debounce_key, "p0debounce");
-SUI_DeclareString(settings_p0_debounce_help, "Pulse interrupt 0 debounce [0-255] * 100");
-
+SUI_DeclareString(settings_p0_debounce_help, "P0 debounce [0-255] * 100");
 SUI_DeclareString(settings_p1_debounce_key, "p1debounce");
-SUI_DeclareString(settings_p1_debounce_help, "Pulse interrupt 1 debounce [0-255] * 100");
+SUI_DeclareString(settings_p1_debounce_help, "P1 debounce [0-255] * 100");
 
 #ifdef CONFIG_ONEWIRE
 SUI_DeclareString(settings_1w_key, "1w");
-SUI_DeclareString(settings_1w_help, "One Wire [0/1]");
+SUI_DeclareString(settings_1w_help, "1W [0/1]");
 #endif
 
 #ifdef CONFIG_DHT
 SUI_DeclareString(settings_dht_key, "dht");
-SUI_DeclareString(settings_dht_help, "Set DHT D[2-4,6,9,10] 0 for disable");
+SUI_DeclareString(settings_dht_help, "Set DHT D[2-4,6,9,10] 0 to disable");
 #endif
 
 SUI_DeclareString(settings_analog_key, "analog");
-SUI_DeclareString(settings_analog_help, "Set A[0-7] 0 for disable");
+SUI_DeclareString(settings_analog_help, "Set A[0-7] 0 to disable");
 
 SUI_DeclareString(settings_show_key, "show");
 
