@@ -1,3 +1,5 @@
+#include <arduino.h>
+#include "main.h"
 #include "config.h"
 #include <RF24Network.h>
 #include <RF24.h>
@@ -46,20 +48,6 @@ RF24Network network(radio);
 OneWire  ds(5);
 #endif
 
-//Node Configuration struct
-typedef struct deviceInfo {
-  char version[4];
-  uint16_t NetworkChannel;
-  uint16_t NetworkNodeID;
-  boolean p0;
-  boolean p1;
-  int p0_debounce;
-  int p1_debounce;
-  boolean onewire;
-  int analog[8];
-  int dht;
-} 
-deviceInfo;
 //Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,1w,a0,a1,a2,a3,a4,a5,a6,a7,dht
 deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0};
 
@@ -113,15 +101,6 @@ SUI_DeclareString(settings_show_key, "show");
 SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
 #endif
 
-// Structure of our payload
-struct payload_t
-{
-  char type;
-  uint8_t sensor;
-  uint8_t value_high;
-  uint8_t value_low;
-  uint8_t options;
-};
 #ifdef DEBUG
 static FILE uartout = {0} ;
 static int uart_putchar (char c, FILE *stream)
@@ -131,37 +110,15 @@ static int uart_putchar (char c, FILE *stream)
 }
 #endif
 
-void setup(void)
-{
-#ifdef CONFIG_MENU
-  mySUI.begin(serial_baud_rate);
-  mySUI.setTimeout(20000);
-  mySUI.setMaxIdleMs(30000);
-  mySUI.setReadTerminator(serial_input_terminator);
-  setupMenus();
-#endif 
-  loadConfig();
-  SPI.begin();
-  radio.begin();
-  radio.setDataRate(RF24_250KBPS);
-  radio.setRetries(7,7);
-  network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
-  
-  if (NodeConfig.p0) {
-    attachInterrupt(0, Pulse_0, RISING);
-  }
-  if (NodeConfig.p1) {
-    attachInterrupt(1, Pulse_1, RISING);
-  }
-#ifdef DEBUG
-  fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
-
-  // The uart is the standard output device STDOUT.
-  stdout = &uartout ;
-#endif
-
-  Serial.println("Bootup");
-  delay(2000);
+//Send the packet over the NRF
+void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
+    uint8_t value_low;
+    uint8_t value_high;
+    value_low = (_value & 0xff); 
+    value_high = (_value >> 4) & 0xff;
+    payload_t payload = { _type, _id, value_high, value_low, options };
+    RF24NetworkHeader header(NETWORK_MASTER);
+    network.write(header,&payload,sizeof(payload));
 }
 
 //P0 Interrupt function
@@ -191,61 +148,8 @@ void Pulse_1() {
     P1cycle++;
 }
 
-void loop(void)
-{
-#ifdef CONFIG_MENU
-  //Start config menu
-  if (mySUI.checkForUser(150))
-  {
-    mySUI.enter();
-    while (mySUI.userPresent())
-    {
-      mySUI.handleRequests();
-    }
-
-  }
-#endif
-  network.update();
-
-  //Read onewire on D5
 #ifdef CONFIG_ONEWIRE
-  if (NodeConfig.onewire) {
-    get_onewire();
-  }
-#endif
-
-  //Read the enabled analog pins
-  int i;
-  for (i = 0; i < 8; i = i + 1) {
-    if (NodeConfig.analog[i] > 0) {
-        read_analog(i);
-    }
-  }
-
-  //Read DHT
-#ifdef CONFIG_DHT
-  if (NodeConfig.dht > 0) {
-#if CONFIG_DHT == 11
-    static Dht11 dht(NodeConfig.dht);
-#endif
-#if CONFIG_DHT == 21
-    static Dht21 dht(NodeConfig.dht);
-#endif
-#if CONFIG_DHT == 22
-    static Dht22 dht(NodeConfig.dht);
-#endif
-    readDHTSensor(dht);
-  }
-#endif
-
-  //Sleep for about 5sec.  
-  for (int x=0; x <= 500; x++){
-    network.update();
-    delay(10);
-  }
-}
-
-#ifdef CONFIG_ONEWIRE
+//Onewire temp sensor function
 void get_onewire(void)
 {
   float celsius;
@@ -324,6 +228,25 @@ void get_onewire(void)
       delay(20);
   }
   ds.reset_search();
+}
+#endif
+
+#ifdef CONFIG_DHT
+//DHT Sensor function
+void readDHTSensor(Dht& sensor) {
+    if (sensor.read() == Dht::OK){ 
+        Serial.print("Humidity (%): ");
+        Serial.println(sensor.getHumidity());
+
+        Serial.print("Temperature (C): ");
+        Serial.println(sensor.getTemperature());
+
+        float temp = sensor.getTemperature() * 100;
+        send_packet('T', (uint8_t) NodeConfig.dht, (int16_t) temp, 0);
+
+        float humd = sensor.getHumidity() * 100;
+        send_packet('H', (uint8_t) NodeConfig.dht, (int16_t) humd, 0);
+    }
 }
 #endif
 
@@ -508,30 +431,90 @@ void read_analog(int pin) {
     send_packet('A', (uint8_t) pin, (int16_t) data, 0);
 }
 
-void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
-    uint8_t value_low;
-    uint8_t value_high;
-    value_low = (_value & 0xff); 
-    value_high = (_value >> 4) & 0xff;
-    payload_t payload = { _type, _id, value_high, value_low, options };
-    RF24NetworkHeader header(NETWORK_MASTER);
-    network.write(header,&payload,sizeof(payload));
-}
+void setup(void)
+{
+#ifdef CONFIG_MENU
+  mySUI.begin(serial_baud_rate);
+  mySUI.setTimeout(20000);
+  mySUI.setMaxIdleMs(30000);
+  mySUI.setReadTerminator(serial_input_terminator);
+  setupMenus();
+#endif 
+  loadConfig();
+  SPI.begin();
+  radio.begin();
+  radio.setDataRate(RF24_250KBPS);
+  radio.setRetries(7,7);
+  network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
+  
+  if (NodeConfig.p0) {
+    attachInterrupt(0, Pulse_0, RISING);
+  }
+  if (NodeConfig.p1) {
+    attachInterrupt(1, Pulse_1, RISING);
+  }
 
-#ifdef CONFIG_DHT
-void readDHTSensor(Dht& sensor) {
-    if (sensor.read() == Dht::OK){ 
-        Serial.print("Humidity (%): ");
-        Serial.println(sensor.getHumidity());
+#ifdef DEBUG
+  fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
 
-        Serial.print("Temperature (C): ");
-        Serial.println(sensor.getTemperature());
-
-        float temp = sensor.getTemperature() * 100;
-        send_packet('T', (uint8_t) NodeConfig.dht, (int16_t) temp, 0);
-
-        float humd = sensor.getHumidity() * 100;
-        send_packet('H', (uint8_t) NodeConfig.dht, (int16_t) humd, 0);
-    }
-}
+  // The uart is the standard output device STDOUT.
+  stdout = &uartout ;
 #endif
+
+  Serial.println("Bootup");
+  delay(2000);
+}
+
+void loop(void)
+{
+#ifdef CONFIG_MENU
+  //Start config menu
+  if (mySUI.checkForUser(150))
+  {
+    mySUI.enter();
+    while (mySUI.userPresent())
+    {
+      mySUI.handleRequests();
+    }
+
+  }
+#endif
+  network.update();
+
+  //Read onewire on D5
+#ifdef CONFIG_ONEWIRE
+  if (NodeConfig.onewire) {
+    get_onewire();
+  }
+#endif
+
+  //Read the enabled analog pins
+  int i;
+  for (i = 0; i < 8; i = i + 1) {
+    if (NodeConfig.analog[i] > 0) {
+        read_analog(i);
+    }
+  }
+
+  //Read DHT
+#ifdef CONFIG_DHT
+  if (NodeConfig.dht > 0) {
+#if CONFIG_DHT == 11
+    static Dht11 dht(NodeConfig.dht);
+#endif
+#if CONFIG_DHT == 21
+    static Dht21 dht(NodeConfig.dht);
+#endif
+#if CONFIG_DHT == 22
+    static Dht22 dht(NodeConfig.dht);
+#endif
+    readDHTSensor(dht);
+  }
+#endif
+
+  //Sleep for about 5sec.  
+  for (int x=0; x <= 500; x++){
+    network.update();
+    delay(10);
+  }
+}
