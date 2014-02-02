@@ -11,3 +11,8 @@
 
 //Debug
 //#define DEBUG
+
+#define serial_baud_rate           57600
+#define serial_input_terminator   '\n'
+
+#define NETWORK_MASTER 0

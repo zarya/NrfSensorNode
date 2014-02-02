@@ -25,19 +25,6 @@
 #include <SerialUI.h>
 #endif
 
-#define serial_baud_rate           57600
-#define serial_input_terminator   '\n'
-
-#define MS_PER_HOUR    3.6e6
-
-#define NETWORK_MASTER 0
-
-// ID of the settings block
-#define CONFIG_VERSION "nc4"
-
-// Tell it where to store your config data in EEPROM
-#define CONFIG_START 32
-
 RF24 radio(8,7);
 
 // Network uses that radio
@@ -277,7 +264,7 @@ void set_devid()
   mySUI.showEnterNumericDataPrompt();
   int new_id = mySUI.parseInt();
   NodeConfig.NetworkNodeID = new_id;
-  mySUI.println("Reboot the device to make the change available");
+  mySUI.println("Reboot needed");
   mySUI.println(NodeConfig.NetworkNodeID, DEC);
   saveConfig();
   mySUI.returnOK();
@@ -300,7 +287,7 @@ void set_p0()
   boolean new_p0 = mySUI.parseInt();
   NodeConfig.p0 = new_p0;
   mySUI.println(NodeConfig.p0, DEC);
-  mySUI.println("Reboot the device to make the change available");
+  mySUI.println("Reboot needed");
   saveConfig();
   mySUI.returnOK();
 }
@@ -311,7 +298,7 @@ void set_p1()
   boolean new_p1 = mySUI.parseInt();
   NodeConfig.p1 = new_p1;
   mySUI.println(NodeConfig.p1, DEC);
-  mySUI.println("Reboot the device to make the change available");
+  mySUI.println("Reboot needed");
   saveConfig();
   mySUI.returnOK();
 }
@@ -419,11 +406,13 @@ void saveConfig() {
     EEPROM.write(CONFIG_START + t, *((char*)&NodeConfig + t));
 }
 
+//Read analog pin value 
 void read_analog(int pin) {
     int data = analogRead(pin);
     send_packet('A', (uint8_t) pin, (int16_t) data, 0);
 }
 
+//Setup frunction
 void setup(void)
 {
 #ifdef CONFIG_MENU
@@ -449,8 +438,6 @@ void setup(void)
 
 #ifdef DEBUG
   fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
-
-  // The uart is the standard output device STDOUT.
   stdout = &uartout ;
 #endif
 

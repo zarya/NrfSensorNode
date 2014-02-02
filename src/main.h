@@ -14,6 +14,13 @@
 #include <Dht22.h>
 #endif
 
+#define MS_PER_HOUR    3.6e6
+
+// ID of the settings block
+#define CONFIG_VERSION "nc4"
+
+// Tell it where to store your config data in EEPROM
+#define CONFIG_START 32
 
 //Node Configuration struct
 typedef struct deviceInfo {
