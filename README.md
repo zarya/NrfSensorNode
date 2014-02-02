@@ -10,11 +10,11 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 -------|------|-------------|
 | type | char | Packet type |
 | sensor | uint8 | Sensor ID |
-| value_high | uint 8 | Higher bits of the uint16 |
-| value_low| uint8 | Lower 8 bits of the uint16 |
+| value_high | uint 8 | Higher 8 bits of the int16 |
+| value_low| uint8 | Lower 8 bits of the int16 |
 | options | uint8 | Option char |
  
-# Packet types
+## Packet types
 
 | Type | Description |
 -------|-------------|
@@ -23,7 +23,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | P | Pulse |
 | A | Analog pin reading |
 
-# Packet options
+## Packet options
 | Bit | Description |
 |-----|-------------|
 | 1 | Negative value|
