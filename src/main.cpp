@@ -3,6 +3,10 @@
 #include <SPI.h>
 #include <EEPROM.h>
 
+#ifndef CONFIG_MENU
+#include <Arduino.h>
+#endif
+
 #include "main.h"
 #include "config.h"
 #include "printf.h"
@@ -90,6 +94,54 @@ static int uart_putchar (char c, FILE *stream)
 }
 #endif
 
+#ifdef RECEIVER
+void send_reply(uint16_t _dst, char _type, char _message)
+{
+    RF24NetworkHeader header(_dst, _type);
+    network.write(header,&_message,sizeof(_message));
+}
+#ifdef OTA-CONFIG
+void handle_ota(RF24NetworkHeader& header)
+{
+    config_payload_t config_payload;
+    network.read(header,&config_payload,sizeof(config_payload));
+    *((char*)&NodeConfig + config_payload.pos) = config_payload.data;
+    Serial.print("Setting POS: ");
+    Serial.print(config_payload.pos,DEC);
+    Serial.print(" Value: ");
+    Serial.println(config_payload.data,DEC); 
+    if (config_payload.options) saveConfig();
+}
+#endif
+
+void receive_packet() {
+    while ( network.available() ) {
+        RF24NetworkHeader header;
+        network.peek(header);
+
+        switch (header.type)
+        {
+            case 'P':
+                Serial.print("Ping from "); 
+                Serial.println(header.from_node);
+                send_reply(header.from_node,'Q','Q');
+                network.read(header,0,0);
+                break;
+#ifdef OTA-CONFIG
+            case 'C':
+                handle_ota(header);
+                network.read(header,0,0);
+                break;
+#endif
+            default:
+                network.read(header,0,0);
+                printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type);
+                break;
+        };
+    }
+}
+#endif
+
 //Send the packet over the NRF
 void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
     uint8_t value_low;
@@ -97,7 +149,7 @@ void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
     value_low = (_value & 0xff); 
     value_high = (_value >> 4) & 0xff;
     payload_t payload = { _type, _id, value_high, value_low, options };
-    RF24NetworkHeader header(NETWORK_MASTER);
+    RF24NetworkHeader header(NETWORK_MASTER,'S');
     network.write(header,&payload,sizeof(payload));
 }
 
@@ -421,7 +473,12 @@ void setup(void)
   mySUI.setMaxIdleMs(30000);
   mySUI.setReadTerminator(serial_input_terminator);
   setupMenus();
-#endif 
+#endif
+#ifdef DEBUG
+#ifndef CONFIG_MENU
+  Serial.begin(serial_baud_rate);
+#endif
+#endif
   loadConfig();
   SPI.begin();
   radio.begin();
@@ -460,6 +517,10 @@ void loop(void)
   }
 #endif
   network.update();
+
+#ifdef RECEIVER
+  receive_packet();
+#endif
 
   //Read onewire on D5
 #ifdef CONFIG_ONEWIRE

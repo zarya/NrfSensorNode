@@ -24,16 +24,16 @@
 
 //Node Configuration struct
 typedef struct deviceInfo {
-  char version[4];
-  uint16_t NetworkChannel;
-  uint16_t NetworkNodeID;
-  boolean p0;
-  boolean p1;
-  int p0_debounce;
-  int p1_debounce;
-  boolean onewire;
-  int analog[8];
-  int dht;
+  char version[4]; //byte 0 - 3
+  uint16_t NetworkChannel; //byte 4-5
+  uint16_t NetworkNodeID; //byte 6-7
+  boolean p0; //byte 8
+  boolean p1; //byte 9
+  int p0_debounce; //byte 10-11
+  int p1_debounce; //byte 12-13
+  boolean onewire; //byte 14
+  int analog[8]; //byte 15
+  int dht; //byte 16
 } deviceInfo;
 
 // Structure of our payload
@@ -45,12 +45,30 @@ struct payload_t
   uint8_t value_low;
   uint8_t options;
 };
+
+#ifdef OTA-CONFIG
+// OTA Config load payload
+struct config_payload_t
+{
+  uint8_t pos;
+  uint8_t data;
+  uint8_t options;
+};
+#endif
+
 #ifdef DEBUG
 static int uart_putchar (char c, FILE *stream);
 #endif
-void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options);
 void loadConfig();
 void saveConfig();
+#ifdef RECEIVER
+#ifdef OTA-CONFIG
+void handle_ota(RF24NetworkHeader& header);
+#endif
+void send_reply(uint16_t _dst, char _type, char _message);
+void receive_packet();
+#endif
+void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options);
 void Pulse_0();
 void Pulse_1();
 #ifdef CONFIG_ONEWIRE
