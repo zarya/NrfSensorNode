@@ -110,7 +110,6 @@ void handle_ota(RF24NetworkHeader& header)
     Serial.print(config_payload.pos,DEC);
     Serial.print(" Value: ");
     Serial.println(config_payload.data,DEC); 
-    if (config_payload.options) saveConfig();
 }
 #endif
 

@@ -52,7 +52,6 @@ struct config_payload_t
 {
   uint8_t pos;
   uint8_t data;
-  uint8_t options;
 };
 #endif
 

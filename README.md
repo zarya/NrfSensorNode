@@ -11,15 +11,15 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 * DHT11,DHT21,DHT22 Humidity and Temperature sensor
 * 2 x Interrupt driven pulse inputs
 * 8 x Analog pin input
+* OTA-Config
 
 ## Wishlist
 * PWM pin control
 * IO pin control
-* OTA-Config
-* 
 
 
-# Payload
+# Struckts
+## Payload
 | name | type | description |
 -------|------|-------------|
 | type | char | Packet type |
@@ -28,7 +28,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | value_low| uint8 | Lower 8 bits of the int16 |
 | options | uint8 | Option char |
  
-## Packet types
+### Packet types
 
 | Type | Description |
 -------|-------------|
@@ -37,7 +37,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | P | Pulse |
 | A | Analog pin reading |
 
-## Packet options
+### Packet options
 | Bit | Description |
 |-----|-------------|
 | 1 | Negative value|
@@ -49,4 +49,9 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | 7 | Unused |
 | 8 | Unused |
 
+## Config Payload
+| name | type | description |
+-------|------|-------------|
+| pos  | uint8 | posision in the config struct |
+| data | uint8 | value |
 
