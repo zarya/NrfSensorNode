@@ -18,7 +18,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 * IO pin control
 
 
-# Struckts
+# Structs
 ## Payload
 | name | type | description |
 -------|------|-------------|
