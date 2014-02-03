@@ -5,6 +5,17 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 
 * To use this install http://inotool.org/quickstart
 
+# Features
+* Onewire bus (DS18S20,DS18B20)
+* DHT11,DHT21,DHT22 Humidity and Temperature sensor
+* 2 x Interrupt driven pulse inputs
+* 8 x Analog pin input
+
+## Withlist
+* PWM pin control
+* IO pin control
+
+
 # Payload
 | name | type | description |
 -------|------|-------------|
