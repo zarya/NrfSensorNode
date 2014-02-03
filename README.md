@@ -11,7 +11,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 * 2 x Interrupt driven pulse inputs
 * 8 x Analog pin input
 
-## Withlist
+## Wishlist
 * PWM pin control
 * IO pin control
 
