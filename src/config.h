@@ -13,7 +13,7 @@
 #define CONFIG_ONEWIRE
 
 //Debug
-//#define DEBUG
+#define DEBUG
 
 //Receiver
 #define RECEIVER

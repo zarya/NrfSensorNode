@@ -17,7 +17,7 @@
 #define MS_PER_HOUR    3.6e6
 
 // ID of the settings block
-#define CONFIG_VERSION "nc4"
+#define CONFIG_VERSION "nc5"
 
 // Tell it where to store your config data in EEPROM
 #define CONFIG_START 32
@@ -29,11 +29,11 @@ typedef struct deviceInfo {
   uint16_t NetworkNodeID; //byte 6-7
   boolean p0; //byte 8
   boolean p1; //byte 9
-  int p0_debounce; //byte 10-11
-  int p1_debounce; //byte 12-13
-  boolean onewire; //byte 14
-  int analog[8]; //byte 15
-  int dht; //byte 16
+  uint8_t p0_debounce; //byte 10
+  uint8_t p1_debounce; //byte 11
+  boolean onewire; //byte 12
+  uint8_t analog[8]; //byte 13-21
+  uint8_t dht; //byte 22
 } deviceInfo;
 
 // Structure of our payload

@@ -40,7 +40,7 @@ OneWire  ds(5);
 #endif
 
 //Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,1w,a0,a1,a2,a3,a4,a5,a6,a7,dht
-deviceInfo NodeConfig = {CONFIG_VERSION,76,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0};
+deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0};
 
 //Storage for Interrupt pins
 unsigned long P0previous = 0;
@@ -62,9 +62,9 @@ SUI_DeclareString(settings_p0_key, "p0");
 SUI_DeclareString(settings_p0_help, "P0 [0/1]");
 SUI_DeclareString(settings_p1_key, "p1");
 SUI_DeclareString(settings_p1_help, "P1 [0/1]");
-SUI_DeclareString(settings_p0_debounce_key, "p0debounce");
+SUI_DeclareString(settings_p0_debounce_key, "p0d");
 SUI_DeclareString(settings_p0_debounce_help, "P0 debounce [0-255] * 100");
-SUI_DeclareString(settings_p1_debounce_key, "p1debounce");
+SUI_DeclareString(settings_p1_debounce_key, "p1d");
 SUI_DeclareString(settings_p1_debounce_help, "P1 debounce [0-255] * 100");
 
 #ifdef CONFIG_ONEWIRE
@@ -114,6 +114,7 @@ void handle_ota(RF24NetworkHeader& header)
 #endif
 
 void receive_packet() {
+    uint32_t timestamp_buffer;
     while ( network.available() ) {
         RF24NetworkHeader header;
         network.peek(header);
@@ -121,10 +122,11 @@ void receive_packet() {
         switch (header.type)
         {
             case 'P':
-                Serial.print("Ping from "); 
+                network.read(header,&timestamp_buffer,4);
+                Serial.print("Ping from ");
+                Serial.print(timestamp_buffer); 
                 Serial.println(header.from_node);
-                send_reply(header.from_node,'Q','Q');
-                network.read(header,0,0);
+                send_reply(header.from_node,'Q',timestamp_buffer);
                 break;
 #ifdef OTA-CONFIG
             case 'C':
