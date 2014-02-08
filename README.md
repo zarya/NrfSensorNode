@@ -16,7 +16,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 ## Wishlist
 * PWM pin control
 * IO pin control
-
+* Serial camera support
 
 # Structs
 ## Payload

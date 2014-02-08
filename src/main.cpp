@@ -109,13 +109,14 @@ void handle_ota(RF24NetworkHeader& header)
     Serial.print("Setting POS: ");
     Serial.print(config_payload.pos,DEC);
     Serial.print(" Value: ");
-    Serial.println(config_payload.data,DEC); 
+    Serial.println(config_payload.data,DEC);
+    saveConfig(); 
 }
 #endif
 
 void receive_packet() {
-    uint32_t timestamp_buffer;
     while ( network.available() ) {
+        uint32_t timestamp_buffer;
         RF24NetworkHeader header;
         network.peek(header);
 
@@ -124,8 +125,9 @@ void receive_packet() {
             case 'P':
                 network.read(header,&timestamp_buffer,4);
                 Serial.print("Ping from ");
-                Serial.print(timestamp_buffer); 
-                Serial.println(header.from_node);
+                Serial.print(header.from_node);
+                Serial.print(" TS: "); 
+                Serial.println(timestamp_buffer); 
                 send_reply(header.from_node,'Q',timestamp_buffer);
                 break;
 #ifdef OTA-CONFIG
