@@ -12,10 +12,10 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 * 2 x Interrupt driven pulse inputs
 * 8 x Analog pin input
 * OTA-Config
-
-## Wishlist
 * PWM pin control
 * IO pin control
+
+## Wishlist
 * Serial camera support
 
 # Structs
@@ -36,6 +36,9 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | H | Humidity |
 | P | Pulse |
 | A | Analog pin reading |
+| P | Ping request |
+| Q | Ping reply |
+| C | Config data |
 
 ### Packet options
 | Bit | Description |
