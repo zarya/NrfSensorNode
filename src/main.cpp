@@ -38,9 +38,12 @@ RF24Network network(radio);
 //Enable onewire on pin 5
 OneWire  ds(5);
 #endif
-
-//Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,1w,a0,a1,a2,a3,a4,a5,a6,a7,dht
-deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0};
+//                                                                                  d             d
+//                                                             1    a a a a a a a a h d d d d d d 1
+//Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,      w,   0,1,2,3,4,5,6,7,t,2,3,4,5,6,9,0
+deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+//   ~   ~ ~ ~ ~ 
+//D2,3,4,5,6,9,10
 
 //Storage for Interrupt pins
 unsigned long P0previous = 0;
@@ -114,6 +117,37 @@ void handle_ota(RF24NetworkHeader& header)
 }
 #endif
 
+void handle_pin_output(RF24NetworkHeader& header)
+{
+    output_payload_t output_payload;
+    network.read(header,&output_payload,sizeof(output_payload));
+    Serial.print("Setting pin ");
+    Serial.print(output_payload.pin);
+    Serial.print("to ");
+    Serial.println(output_payload.value);
+    if (output_payload.pin == 2 and NodeConfig.digital[0] == 1) {
+        digitalWrite(2,output_payload.value);
+    }
+    else if (output_payload.pin == 3 and NodeConfig.digital[1] == 1) {
+        analogWrite(3,output_payload.value);
+    }
+    else if (output_payload.pin == 4 and NodeConfig.digital[2] == 1) {
+        digitalWrite(4,output_payload.value);
+    }
+    else if (output_payload.pin == 5 and NodeConfig.digital[3] == 1) {
+        analogWrite(5,output_payload.value);
+    }
+    else if (output_payload.pin == 6 and NodeConfig.digital[4] == 1) {
+        analogWrite(6,output_payload.value);
+    }
+    else if (output_payload.pin == 9 and NodeConfig.digital[5] == 1) {
+        analogWrite(9,output_payload.value);
+    }
+    else if (output_payload.pin == 10 and NodeConfig.digital[6] == 1) {
+        analogWrite(5,output_payload.value);
+    }
+}
+
 void receive_packet() {
     while ( network.available() ) {
         uint32_t timestamp_buffer;
@@ -136,6 +170,9 @@ void receive_packet() {
                 network.read(header,0,0);
                 break;
 #endif
+            case 'O':
+                handle_pin_output(header);
+                break;
             default:
                 network.read(header,0,0);
                 printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type);
@@ -310,6 +347,12 @@ void show_info()
   int i;
   for (i = 0; i < 8; i = i ++) {
     mySUI.print(NodeConfig.analog[i]);
+  }
+  mySUI.println("");
+  mySUI.println("         23456910");
+  mySUI.print("Digital: ");
+  for (i = 0; i < 7; i = i ++) {
+    mySUI.print(NodeConfig.digital[i]);
   }
   mySUI.println("");
 }
@@ -488,6 +531,30 @@ void setup(void)
   radio.setDataRate(RF24_250KBPS);
   radio.setRetries(7,7);
   network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
+
+#ifdef RECEIVER
+  if (NodeConfig.digital[0] == 1) {
+    pinMode(2,OUTPUT);
+  }
+  else if (NodeConfig.digital[1] == 1) {
+    pinMode(3,OUTPUT);
+  }
+  else if (NodeConfig.digital[2] == 1) {
+    pinMode(4,OUTPUT);
+  }
+  else if (NodeConfig.digital[3] == 1) {
+    pinMode(5,OUTPUT);
+  }
+  else if (NodeConfig.digital[4] == 1) {
+    pinMode(6,OUTPUT);
+  }
+  else if (NodeConfig.digital[5] == 1) {
+    pinMode(9,OUTPUT);
+  }
+  else if (NodeConfig.digital[6] == 1) {
+    pinMode(10,OUTPUT);
+  }
+#endif
   
   if (NodeConfig.p0) {
     attachInterrupt(0, Pulse_0, RISING);
@@ -559,6 +626,9 @@ void loop(void)
   //Sleep for about 5sec.  
   for (int x=0; x <= 500; x++){
     network.update();
+#ifdef RECEIVER
+    receive_packet();
+#endif
     delay(10);
   }
 }
