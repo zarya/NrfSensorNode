@@ -4,20 +4,14 @@
 #include <OneWire.h>
 #endif
 
-#if CONFIG_DHT == 11
-#include <Dht11.h>
-#endif
-#if CONFIG_DHT == 21
-#include <Dht21.h>
-#endif
-#if CONFIG_DHT == 22
-#include <Dht22.h>
+#ifdef CONFIG_DHT
+#include "DHT.h"
 #endif
 
 #define MS_PER_HOUR    3.6e6
 
 // ID of the settings block
-#define CONFIG_VERSION "nc5"
+#define CONFIG_VERSION "nc6"
 
 // Tell it where to store your config data in EEPROM
 #define CONFIG_START 32
@@ -34,6 +28,7 @@ typedef struct deviceInfo {
   boolean onewire; //byte 12
   uint8_t analog[8]; //byte 13-21
   uint8_t dht; //byte 22
+  uint8_t digital[7]; //byte 23-30
 } deviceInfo;
 
 // Structure of our payload
@@ -55,6 +50,12 @@ struct config_payload_t
 };
 #endif
 
+struct output_payload_t
+{
+  uint8_t pin;
+  uint8_t value;
+};
+
 #ifdef DEBUG
 static int uart_putchar (char c, FILE *stream);
 #endif
@@ -64,8 +65,10 @@ void saveConfig();
 #ifdef OTA-CONFIG
 void handle_ota(RF24NetworkHeader& header);
 #endif
+void handle_pin_output(RF24NetworkHeader& header);
 void send_reply(uint16_t _dst, char _type, char _message);
 void receive_packet();
+
 #endif
 void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options);
 void Pulse_0();
@@ -74,7 +77,7 @@ void Pulse_1();
 void get_onewire(void);
 #endif
 #ifdef CONFIG_DHT
-void readDHTSensor(Dht& sensor);
+void readDHTSensor(void);
 #endif
 #ifdef CONFIG_MENU
 void show_info();

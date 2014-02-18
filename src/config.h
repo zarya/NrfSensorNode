@@ -5,9 +5,12 @@
 #define CONFIG_MENU
 
 // Enable DHT11/21/22 support
-//#define CONFIG_DHT 11
-//#define CONFIG_DHT 21
-//#define CONFIG_DHT 22
+#define CONFIG_DHT
+
+#define DHTPIN 3 
+#define DHTTYPE DHT11
+//#define DHTTYPE DHT21
+//#define DHTTYPE DHT22
 
 // Enable onewire temp support
 #define CONFIG_ONEWIRE

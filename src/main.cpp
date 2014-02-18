@@ -15,14 +15,9 @@
 #include <OneWire.h>
 #endif
 
-#if CONFIG_DHT == 11
-#include <Dht11.h>
-#endif
-#if CONFIG_DHT == 21
-#include <Dht21.h>
-#endif
-#if CONFIG_DHT == 22
-#include <Dht22.h>
+#ifdef CONFIG_DHT
+#include "DHT.h"
+DHT dht(DHTPIN, DHTTYPE);
 #endif
 
 #ifdef CONFIG_MENU
@@ -38,6 +33,7 @@ RF24Network network(radio);
 //Enable onewire on pin 5
 OneWire  ds(5);
 #endif
+
 //                                                                                  d             d
 //                                                             1    a a a a a a a a h d d d d d d 1
 //Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,      w,   0,1,2,3,4,5,6,7,t,2,3,4,5,6,9,0
@@ -123,7 +119,7 @@ void handle_pin_output(RF24NetworkHeader& header)
     network.read(header,&output_payload,sizeof(output_payload));
     Serial.print("Setting pin ");
     Serial.print(output_payload.pin);
-    Serial.print("to ");
+    Serial.print(" to ");
     Serial.println(output_payload.value);
     if (output_payload.pin == 2 and NodeConfig.digital[0] == 1) {
         digitalWrite(2,output_payload.value);
@@ -144,7 +140,7 @@ void handle_pin_output(RF24NetworkHeader& header)
         analogWrite(9,output_payload.value);
     }
     else if (output_payload.pin == 10 and NodeConfig.digital[6] == 1) {
-        analogWrite(5,output_payload.value);
+        analogWrite(10,output_payload.value);
     }
 }
 
@@ -305,20 +301,20 @@ void get_onewire(void)
 
 #ifdef CONFIG_DHT
 //DHT Sensor function
-void readDHTSensor(Dht& sensor) {
-    if (sensor.read() == Dht::OK){ 
-        Serial.print("H = ");
-        Serial.println(sensor.getHumidity());
+void readDHTSensor() {
+    int16_t h = dht.readHumidity();
+    int16_t t = dht.readTemperature();
+    if (isnan(t) || isnan(h)) {
+        return;
+    } 
+    Serial.print("H = ");
+    Serial.println(h);
 
-        Serial.print("T = ");
-        Serial.println(sensor.getTemperature());
+    Serial.print("T = ");
+    Serial.println(t);
 
-        float temp = sensor.getTemperature() * 100;
-        send_packet('T', (uint8_t) NodeConfig.dht, (int16_t) temp, 0);
-
-        float humd = sensor.getHumidity() * 100;
-        send_packet('H', (uint8_t) NodeConfig.dht, (int16_t) humd, 0);
-    }
+    send_packet('T', 0, t * 100, 0);
+    send_packet('H', 0, h, 0);
 }
 #endif
 
@@ -532,6 +528,10 @@ void setup(void)
   radio.setRetries(7,7);
   network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
 
+#ifdef CONFIG_DHT
+  dht.begin();
+#endif
+
 #ifdef RECEIVER
   if (NodeConfig.digital[0] == 1) {
     pinMode(2,OUTPUT);
@@ -610,19 +610,9 @@ void loop(void)
   //Read DHT
 #ifdef CONFIG_DHT
   if (NodeConfig.dht > 0) {
-#if CONFIG_DHT == 11
-    static Dht11 dht(NodeConfig.dht);
-#endif
-#if CONFIG_DHT == 21
-    static Dht21 dht(NodeConfig.dht);
-#endif
-#if CONFIG_DHT == 22
-    static Dht22 dht(NodeConfig.dht);
-#endif
-    readDHTSensor(dht);
+    readDHTSensor();
   }
 #endif
-
   //Sleep for about 5sec.  
   for (int x=0; x <= 500; x++){
     network.update();
