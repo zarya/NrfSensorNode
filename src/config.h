@@ -1,3 +1,6 @@
+//Debug
+#define DEBUG
+
 // Enable OTA Config (requires RECEIVER to be enabled)
 #define OTA-CONFIG
 
@@ -15,8 +18,11 @@
 // Enable onewire temp support
 #define CONFIG_ONEWIRE
 
-//Debug
-#define DEBUG
+// Enable WS2801 driver
+//#define WS2801
+#define WS2801_DATA 9 
+#define WS2801_CLK 6
+#define WS2801_LEDS 1 
 
 //Receiver
 #define RECEIVER
@@ -25,3 +31,11 @@
 #define serial_input_terminator   '\n'
 
 #define NETWORK_MASTER 0
+
+#ifdef DEBUG 
+#define IF_DEBUG(x) ({x;})
+#else
+#define IF_DEBUG(x)
+#endif
+
+

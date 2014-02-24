@@ -50,6 +50,18 @@ struct config_payload_t
 };
 #endif
 
+#ifdef WS2801
+struct ws2801_payload_t
+{
+  uint8_t func;
+  uint8_t l_led;
+  uint8_t h_led;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+};
+#endif
+
 struct output_payload_t
 {
   uint8_t pin;
@@ -67,6 +79,10 @@ void handle_ota(RF24NetworkHeader& header);
 #endif
 void handle_pin_output(RF24NetworkHeader& header);
 void send_reply(uint16_t _dst, char _type, char _message);
+#ifdef WS2801
+void handle_ws2801(RF24NetworkHeader& header);
+#endif
+
 void receive_packet();
 
 #endif

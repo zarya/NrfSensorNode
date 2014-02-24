@@ -46,7 +46,6 @@ float DHT::readTemperature(bool S) {
       return f;
     }
   }
-  Serial.print("Read fail");
   return NAN;
 }
 
@@ -70,7 +69,6 @@ float DHT::readHumidity(void) {
       return f;
     }
   }
-  Serial.print("Read fail");
   return NAN;
 }
 
@@ -95,10 +93,6 @@ boolean DHT::read(void) {
     //delay(2000 - (currenttime - _lastreadtime));
   }
   firstreading = false;
-  /*
-    Serial.print("Currtime: "); Serial.print(currenttime);
-    Serial.print(" Lasttime: "); Serial.print(_lastreadtime);
-  */
   _lastreadtime = millis();
 
   data[0] = data[1] = data[2] = data[3] = data[4] = 0;
@@ -139,23 +133,11 @@ boolean DHT::read(void) {
 
   sei();
   
-  /*
-  Serial.println(j, DEC);
-  Serial.print(data[0], HEX); Serial.print(", ");
-  Serial.print(data[1], HEX); Serial.print(", ");
-  Serial.print(data[2], HEX); Serial.print(", ");
-  Serial.print(data[3], HEX); Serial.print(", ");
-  Serial.print(data[4], HEX); Serial.print(" =? ");
-  Serial.println(data[0] + data[1] + data[2] + data[3], HEX);
-  */
-
   // check we read 40 bits and that the checksum matches
   if ((j >= 40) && 
       (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) ) {
     return true;
   }
-  
 
   return false;
-
 }

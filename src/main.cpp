@@ -2,36 +2,50 @@
 #include <RF24.h>
 #include <SPI.h>
 #include <EEPROM.h>
-
-#ifndef CONFIG_MENU
-#include <Arduino.h>
-#endif
-
 #include "main.h"
 #include "config.h"
 #include "printf.h"
 
-#ifdef CONFIG_ONEWIRE
-#include <OneWire.h>
-#endif
-
-#ifdef CONFIG_DHT
-#include "DHT.h"
-DHT dht(DHTPIN, DHTTYPE);
+#ifndef CONFIG_MENU
+#include <Arduino.h>
 #endif
 
 #ifdef CONFIG_MENU
 #include <SerialUI.h>
 #endif
 
+#ifdef CONFIG_ONEWIRE
+#include <OneWire.h>
+//Enable onewire on pin 5
+OneWire  ds(5);
+#endif
+
+//Load DHT module
+#ifdef CONFIG_DHT
+#include "DHT.h"
+DHT dht(DHTPIN, DHTTYPE);
+#endif
+
+//load WS1801 module
+#ifdef WS2801
+#include <SPI.h>
+#include <Adafruit_WS2801.h>
+Adafruit_WS2801 strip = Adafruit_WS2801(WS2801_LEDS, WS2801_DATA, WS2801_CLK);
+#endif
+
+//Initialize radio
 RF24 radio(8,7);
 
 // Network uses that radio
 RF24Network network(radio);
 
-#ifdef CONFIG_ONEWIRE
-//Enable onewire on pin 5
-OneWire  ds(5);
+#ifdef DEBUG
+static FILE uartout = {0} ;
+static int uart_putchar (char c, FILE *stream)
+{
+    Serial.write(c) ;
+    return 0 ;
+}
 #endif
 
 //                                                                                  d             d
@@ -65,32 +79,14 @@ SUI_DeclareString(settings_p0_debounce_key, "p0d");
 SUI_DeclareString(settings_p0_debounce_help, "P0 debounce [0-255] * 100");
 SUI_DeclareString(settings_p1_debounce_key, "p1d");
 SUI_DeclareString(settings_p1_debounce_help, "P1 debounce [0-255] * 100");
-
-#ifdef CONFIG_ONEWIRE
 SUI_DeclareString(settings_1w_key, "1w");
 SUI_DeclareString(settings_1w_help, "1W [0/1]");
-#endif
-
-#ifdef CONFIG_DHT
 SUI_DeclareString(settings_dht_key, "dht");
 SUI_DeclareString(settings_dht_help, "Set DHT D[2-4,6,9,10] 0 to disable");
-#endif
-
 SUI_DeclareString(settings_analog_key, "analog");
 SUI_DeclareString(settings_analog_help, "Set A[0-7] 0 to disable");
-
 SUI_DeclareString(settings_show_key, "show");
-
 SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
-#endif
-
-#ifdef DEBUG
-static FILE uartout = {0} ;
-static int uart_putchar (char c, FILE *stream)
-{
-    Serial.write(c) ;
-    return 0 ;
-}
 #endif
 
 #ifdef RECEIVER
@@ -99,16 +95,14 @@ void send_reply(uint16_t _dst, char _type, char _message)
     RF24NetworkHeader header(_dst, _type);
     network.write(header,&_message,sizeof(_message));
 }
+
 #ifdef OTA-CONFIG
 void handle_ota(RF24NetworkHeader& header)
 {
     config_payload_t config_payload;
     network.read(header,&config_payload,sizeof(config_payload));
     *((char*)&NodeConfig + config_payload.pos) = config_payload.data;
-    Serial.print("Setting POS: ");
-    Serial.print(config_payload.pos,DEC);
-    Serial.print(" Value: ");
-    Serial.println(config_payload.data,DEC);
+    IF_DEBUG(printf_P(PSTR("Setting POS: %i value: %i\n\r"),config_payload.pos,config_payload.data));
     saveConfig(); 
 }
 #endif
@@ -117,10 +111,7 @@ void handle_pin_output(RF24NetworkHeader& header)
 {
     output_payload_t output_payload;
     network.read(header,&output_payload,sizeof(output_payload));
-    Serial.print("Setting pin ");
-    Serial.print(output_payload.pin);
-    Serial.print(" to ");
-    Serial.println(output_payload.value);
+    IF_DEBUG(printf_P(PSTR("Setting pin: %i to: %i\n\r"),output_payload.pin,output_payload.value));
     if (output_payload.pin == 2 and NodeConfig.digital[0] == 1) {
         digitalWrite(2,output_payload.value);
     }
@@ -144,6 +135,18 @@ void handle_pin_output(RF24NetworkHeader& header)
     }
 }
 
+#ifdef WS2801
+void handle_ws2801(RF24NetworkHeader& header)
+{
+    ws2801_payload_t ws_payload;
+    network.read(header,&ws_payload,sizeof(ws_payload));
+    IF_DEBUG(printf_P(PSTR("WS2801: %i %i %i %i %i %i\n\r"),ws_payload.func,ws_payload.l_led,ws_payload.h_led,ws_payload.r,ws_payload.g,ws_payload.b));
+    uint32_t color = (ws_payload.r << 16) | (ws_payload.g << 8) | ws_payload.b;
+    strip.setPixelColor(ws_payload.l_led, color);
+    strip.show();
+}
+#endif
+
 void receive_packet() {
     while ( network.available() ) {
         uint32_t timestamp_buffer;
@@ -154,10 +157,7 @@ void receive_packet() {
         {
             case 'P':
                 network.read(header,&timestamp_buffer,4);
-                Serial.print("Ping from ");
-                Serial.print(header.from_node);
-                Serial.print(" TS: "); 
-                Serial.println(timestamp_buffer); 
+                IF_DEBUG(printf_P(PSTR("Ping from %i TS: %i"),header.from_node,timestamp_buffer)); 
                 send_reply(header.from_node,'Q',timestamp_buffer);
                 break;
 #ifdef OTA-CONFIG
@@ -169,9 +169,14 @@ void receive_packet() {
             case 'O':
                 handle_pin_output(header);
                 break;
+#ifdef WS2801
+            case 'W':
+                handle_ws2801(header);
+                break;
+#endif
             default:
                 network.read(header,0,0);
-                printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type);
+                IF_DEBUG(printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"),header.type));
                 break;
         };
     }
@@ -197,7 +202,7 @@ void Pulse_0() {
     if (P0time < NodeConfig.p0_debounce * 100) return;
 
     P0previous = P0now;
-    Serial.println("P0 Pulse");
+    IF_DEBUG(printf_P(PSTR("P0 Pulse\n\r")));
     send_packet('P', 0, 1, 0);
     P1cycle++;
 }
@@ -210,8 +215,7 @@ void Pulse_1() {
     if (P1time < NodeConfig.p1_debounce * 100) return;
 
     P1previous = P1now;
-
-    Serial.println("P1 Pulse");
+    IF_DEBUG(printf_P(PSTR("P0 Pulse\n\r")));
     send_packet('P', 1, 1, 0);
     P1cycle++;
 }
@@ -286,12 +290,8 @@ void get_onewire(void)
         negative = 1;
       }
       celsius = (float)raw / 17.0;
-      Serial.print(addr[7]);
-      Serial.print(" T = ");
-      if (negative) Serial.print("-");
-      Serial.println(celsius);
-      
       float temperatuur = celsius * 100;
+      IF_DEBUG(printf_P(PSTR("1W: %i T = %i %i\n\r"),addr[7],(int16_t) temperatuur,negative));
       send_packet('T', (uint8_t) addr[7], (int16_t) temperatuur,negative); 
       delay(20);
   }
@@ -307,13 +307,9 @@ void readDHTSensor() {
     if (isnan(t) || isnan(h)) {
         return;
     } 
-    Serial.print("H = ");
-    Serial.println(h);
-
-    Serial.print("T = ");
-    Serial.println(t);
-
+    IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,t));
     send_packet('T', 0, t * 100, 0);
+    delay(150);
     send_packet('H', 0, h, 0);
 }
 #endif
@@ -434,7 +430,6 @@ void set_analog()
   }
 }
 
-#ifdef CONFIG_ONEWIRE
 void set_1w()
 {
   mySUI.showEnterNumericDataPrompt();
@@ -444,9 +439,7 @@ void set_1w()
   saveConfig();
   mySUI.returnOK();
 }
-#endif
 
-#ifdef CONFIG_DHT
 void set_dht()
 {
   mySUI.showEnterNumericDataPrompt();
@@ -458,7 +451,6 @@ void set_dht()
     mySUI.returnOK();
   }else mySUI.returnError("invallid pin");
 }
-#endif
 
 void setupMenus()
 {
@@ -470,12 +462,8 @@ void setupMenus()
   settingsMenu->addCommand(settings_p1_key, set_p1, settings_p1_help);
   settingsMenu->addCommand(settings_p0_debounce_key, set_p0_debounce, settings_p0_debounce_help);
   settingsMenu->addCommand(settings_p1_debounce_key, set_p1_debounce, settings_p1_debounce_help);
-#ifdef CONFIG_ONEWIRE
   settingsMenu->addCommand(settings_1w_key, set_1w, settings_1w_help);
-#endif
-#ifdef CONFIG_DHT
   settingsMenu->addCommand(settings_dht_key, set_dht, settings_dht_help);
-#endif
   settingsMenu->addCommand(settings_analog_key, set_analog, settings_analog_help);
   settingsMenu->addCommand(settings_show_key, show_info);
 }
@@ -490,7 +478,7 @@ void loadConfig() {
       *((char*)&NodeConfig + t) = EEPROM.read(CONFIG_START + t);
   }
   else {
-    Serial.println("Config corrupted");
+    IF_DEBUG(printf_P(PSTR("*** WARNING *** Config corrupted %c\n\r")));
   }
 }
 
@@ -528,6 +516,15 @@ void setup(void)
   radio.setRetries(7,7);
   network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
 
+#ifdef WS2801
+  strip.begin();
+  strip.show();
+  uint32_t color;
+  color = (0 << 16) | (0 << 8) | 255;  
+  strip.setPixelColor(1, color);
+  strip.show();
+#endif
+
 #ifdef CONFIG_DHT
   dht.begin();
 #endif
@@ -553,6 +550,7 @@ void setup(void)
   }
   else if (NodeConfig.digital[6] == 1) {
     pinMode(10,OUTPUT);
+    analogWrite(10,0);
   }
 #endif
   
@@ -568,7 +566,7 @@ void setup(void)
   stdout = &uartout ;
 #endif
 
-  Serial.println("Bootup");
+  IF_DEBUG(printf_P(PSTR("*** Bootup\n\r"))); 
   delay(2000);
 }
 
