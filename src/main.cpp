@@ -1,10 +1,11 @@
+#include <arduino.h>
+#include "printf.h"
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
 #include <EEPROM.h>
 #include "main.h"
 #include "config.h"
-#include "printf.h"
 
 #ifndef CONFIG_MENU
 #include <Arduino.h>
@@ -39,6 +40,9 @@ RF24 radio(8,7);
 // Network uses that radio
 RF24Network network(radio);
 
+//Load Sleep functions
+Sleep sleep;
+
 #ifdef DEBUG
 static FILE uartout = {0} ;
 static int uart_putchar (char c, FILE *stream)
@@ -50,8 +54,8 @@ static int uart_putchar (char c, FILE *stream)
 
 //                                                                                  d             d
 //                                                             1    a a a a a a a a h d d d d d d 1
-//Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,      w,   0,1,2,3,4,5,6,7,t,2,3,4,5,6,9,0
-deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+//Config version, NetworkChannel, NodeID,p0,p1,p0db,p1db,      w,   0,1,2,3,4,5,6,7,t,2,3,4,5,6,9,0 leaf 
+deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 //   ~   ~ ~ ~ ~ 
 //D2,3,4,5,6,9,10
 
@@ -93,7 +97,8 @@ SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
 void send_reply(uint16_t _dst, char _type, char _message)
 {
     RF24NetworkHeader header(_dst, _type);
-    network.write(header,&_message,sizeof(_message));
+    if (!network.write(header,&_message,sizeof(_message)))
+        IF_DEBUG(printf_P(PSTR("*** WARNING *** Packet not send.\n\r")));
 }
 
 #ifdef OTA-CONFIG
@@ -157,7 +162,7 @@ void receive_packet() {
         {
             case 'P':
                 network.read(header,&timestamp_buffer,4);
-                IF_DEBUG(printf_P(PSTR("Ping from %i TS: %i"),header.from_node,timestamp_buffer)); 
+                IF_DEBUG(printf_P(PSTR("Ping from %i TS: %i\n\r"),header.from_node,timestamp_buffer)); 
                 send_reply(header.from_node,'Q',timestamp_buffer);
                 break;
 #ifdef OTA-CONFIG
@@ -191,7 +196,8 @@ void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
     value_high = (_value >> 4) & 0xff;
     payload_t payload = { _type, _id, value_high, value_low, options };
     RF24NetworkHeader header(NETWORK_MASTER,'S');
-    network.write(header,&payload,sizeof(payload));
+    if (!network.write(header,&payload,sizeof(payload)))
+        IF_DEBUG(printf_P(PSTR("*** WARNING *** Packet not send.\n\r")));
 }
 
 //P0 Interrupt function
@@ -204,7 +210,6 @@ void Pulse_0() {
     P0previous = P0now;
     IF_DEBUG(printf_P(PSTR("P0 Pulse\n\r")));
     send_packet('P', 0, 1, 0);
-    P1cycle++;
 }
 
 //P1 Interrupt function
@@ -217,7 +222,6 @@ void Pulse_1() {
     P1previous = P1now;
     IF_DEBUG(printf_P(PSTR("P0 Pulse\n\r")));
     send_packet('P', 1, 1, 0);
-    P1cycle++;
 }
 
 #ifdef CONFIG_ONEWIRE
@@ -347,6 +351,8 @@ void show_info()
     mySUI.print(NodeConfig.digital[i]);
   }
   mySUI.println("");
+  mySUI.print("Leaf node: ");
+  mySUI.println(NodeConfig.leaf);
 }
 
 void set_devid()
@@ -508,12 +514,15 @@ void setup(void)
 #ifndef CONFIG_MENU
   Serial.begin(serial_baud_rate);
 #endif
+  fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
+  stdout = &uartout ;
 #endif
   loadConfig();
   SPI.begin();
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
   radio.setRetries(7,7);
+  radio.printDetails();
   network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
 
 #ifdef WS2801
@@ -548,10 +557,10 @@ void setup(void)
   else if (NodeConfig.digital[5] == 1) {
     pinMode(9,OUTPUT);
   }
-  else if (NodeConfig.digital[6] == 1) {
-    pinMode(10,OUTPUT);
-    analogWrite(10,0);
-  }
+  //else if (NodeConfig.digital[6] == 1) {
+  //  pinMode(10,OUTPUT);
+  //  analogWrite(10,0);
+  //}
 #endif
   
   if (NodeConfig.p0) {
@@ -611,12 +620,20 @@ void loop(void)
     readDHTSensor();
   }
 #endif
-  //Sleep for about 5sec.  
-  for (int x=0; x <= 500; x++){
-    network.update();
-#ifdef RECEIVER
-    receive_packet();
-#endif
-    delay(10);
+  if (NodeConfig.leaf == 0) {
+      //Sleep for about 5sec.  
+      for (int x=0; x <= 500; x++){
+        network.update();
+    #ifdef RECEIVER
+        receive_packet();
+    #endif
+        delay(10);
+      }
+  }else{
+    IF_DEBUG(printf_P(PSTR("Sleeping\n\r")));
+    IF_DEBUG(delay(10));
+    radio.powerDown();
+    sleep.pwrDownMode();
+    sleep.sleepDelay(NodeConfig.leaf*1000);
   }
 }

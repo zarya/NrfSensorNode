@@ -1,4 +1,5 @@
 #include "config.h"
+#include <Sleep_n0m1.h>
 
 #ifdef CONFIG_ONEWIRE
 #include <OneWire.h>
@@ -11,7 +12,7 @@
 #define MS_PER_HOUR    3.6e6
 
 // ID of the settings block
-#define CONFIG_VERSION "nc6"
+#define CONFIG_VERSION "nc7"
 
 // Tell it where to store your config data in EEPROM
 #define CONFIG_START 32
@@ -29,6 +30,7 @@ typedef struct deviceInfo {
   uint8_t analog[8]; //byte 13-21
   uint8_t dht; //byte 22
   uint8_t digital[7]; //byte 23-30
+  uint8_t leaf;
 } deviceInfo;
 
 // Structure of our payload

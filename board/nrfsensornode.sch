@@ -8751,7 +8751,7 @@ type 0309, grid 2.5 mm</description>
 <part name="NRF24L01" library="pinhead" deviceset="PINHD-2X4" device=""/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
 <part name="IC1" library="v-reg-lm1117" deviceset="LM1117?*" device="MPX" technology="-3.3" value=""/>
-<part name="C1" library="adafruit" deviceset="CPOL-US" device="E2-4" value="10uf"/>
+<part name="C1" library="adafruit" deviceset="CPOL-US" device="E2-4" value="22uf"/>
 <part name="U$1" library="zarya" deviceset="ARDMINIPRO" device=""/>
 <part name="+3V1" library="supply1" deviceset="+3V3" device=""/>
 <part name="POWER" library="pinhead" deviceset="PINHD-1X2" device=""/>
@@ -8783,6 +8783,7 @@ type 0309, grid 2.5 mm</description>
 <part name="D9" library="adafruit" deviceset="PINHD-1X3" device=""/>
 <part name="D10" library="adafruit" deviceset="PINHD-1X3" device=""/>
 <part name="1W" library="adafruit" deviceset="PINHD-1X3" device=""/>
+<part name="R3" library="adafruit" deviceset="R-US_" device="M1206" value="10k"/>
 </parts>
 <sheets>
 <sheet>
@@ -8827,6 +8828,7 @@ type 0309, grid 2.5 mm</description>
 <instance part="D9" gate="A" x="-129.54" y="55.88"/>
 <instance part="D10" gate="A" x="-147.32" y="86.36"/>
 <instance part="1W" gate="A" x="-129.54" y="86.36"/>
+<instance part="R3" gate="G$1" x="12.7" y="43.18"/>
 </instances>
 <busses>
 </busses>
@@ -8843,8 +8845,9 @@ type 0309, grid 2.5 mm</description>
 <junction x="0" y="66.04"/>
 <pinref part="IC1" gate="G$1" pin="GND"/>
 <wire x1="33.02" y1="81.28" x2="33.02" y2="66.04" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="66.04" x2="45.72" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="66.04" x2="38.1" y2="66.04" width="0.1524" layer="91"/>
 <pinref part="C1" gate="G$1" pin="-"/>
+<wire x1="38.1" y1="66.04" x2="45.72" y2="66.04" width="0.1524" layer="91"/>
 <wire x1="45.72" y1="73.66" x2="45.72" y2="66.04" width="0.1524" layer="91"/>
 <wire x1="0" y1="66.04" x2="20.32" y2="66.04" width="0.1524" layer="91"/>
 <junction x="33.02" y="66.04"/>
@@ -8853,6 +8856,10 @@ type 0309, grid 2.5 mm</description>
 <pinref part="C2" gate="G$1" pin="-"/>
 <wire x1="20.32" y1="73.66" x2="20.32" y2="66.04" width="0.1524" layer="91"/>
 <label x="-2.54" y="58.42" size="1.27" layer="95" rot="R180" xref="yes"/>
+<wire x1="38.1" y1="66.04" x2="38.1" y2="43.18" width="0.1524" layer="91"/>
+<pinref part="R3" gate="G$1" pin="2"/>
+<wire x1="38.1" y1="43.18" x2="17.78" y2="43.18" width="0.1524" layer="91"/>
+<junction x="38.1" y="66.04"/>
 </segment>
 <segment>
 <pinref part="U$1" gate="G$1" pin="GND"/>
@@ -9328,8 +9335,13 @@ type 0309, grid 2.5 mm</description>
 </segment>
 <segment>
 <pinref part="NRF24L01" gate="A" pin="7"/>
-<wire x1="7.62" y1="50.8" x2="-2.54" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="7.62" y1="50.8" x2="0" y2="50.8" width="0.1524" layer="91"/>
 <label x="-2.54" y="50.8" size="1.27" layer="95" rot="R180" xref="yes"/>
+<junction x="0" y="50.8"/>
+<wire x1="0" y1="50.8" x2="-2.54" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="0" y1="50.8" x2="0" y2="43.18" width="0.1524" layer="91"/>
+<pinref part="R3" gate="G$1" pin="1"/>
+<wire x1="0" y1="43.18" x2="7.62" y2="43.18" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="MISO" gate="G$1" pin="P"/>
