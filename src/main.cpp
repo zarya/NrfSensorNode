@@ -342,11 +342,11 @@ void readVcc() {
   uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
   uint8_t high = ADCH; // unlocks both
  
-  int16_t result = (high<<4) | low;
- 
-  result = 112530 / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-  send_packet('B',0, result, 0);
-  IF_DEBUG(printf_P(PSTR("VCC: %i\n\r"), result));
+  long result = (high<<8) | low;
+
+  result = 112530L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  send_packet('B',0, (int16_t) result, 0);
+  IF_DEBUG(printf_P(PSTR("VCC: %d\n\r"), result));
   delay(150);
 }
 #endif
