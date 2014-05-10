@@ -90,6 +90,7 @@ SUI_DeclareString(settings_dht_help, "Set DHT D[2-4,6,9,10] 0 to disable");
 SUI_DeclareString(settings_analog_key, "analog");
 SUI_DeclareString(settings_analog_help, "Set A[0-7] 0 to disable");
 SUI_DeclareString(settings_show_key, "show");
+SUI_DeclareString(settings_clear_key, "clear");
 SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
 #endif
 
@@ -351,6 +352,18 @@ void readVcc() {
 #endif
 
 #ifdef CONFIG_MENU
+//Factory default
+void clear_info()
+{
+  //                                                                                  d             d
+  //                                                             1    a a a a a a a a h d d d d d d 1
+  //cnfve, NetworkChannel, NodeID,p0,p1,p0db,p1db,      w,   0,1,2,3,4,5,6,7,t,2,3,4,5,6,9,0 leaf
+  deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  saveConfig();
+  mySUI.println("Factory reset");
+  show_info();
+}
+
 void show_info()
 {
   SUI::Menu * current_menu = mySUI.currentMenu();
@@ -482,12 +495,10 @@ void set_dht()
 {
   mySUI.showEnterNumericDataPrompt();
   boolean new_dht = mySUI.parseInt();
-  if (new_dht == 0 or new_dht == 2 or new_dht == 3 or new_dht == 4 or new_dht == 6 or new_dht == 9 or new_dht == 10){
-      NodeConfig.dht = new_dht;
-    mySUI.println(NodeConfig.dht, DEC);
-    saveConfig();
-    mySUI.returnOK();
-  }else mySUI.returnError("invallid pin");
+  NodeConfig.dht = new_dht;
+  mySUI.println(NodeConfig.dht, DEC);
+  saveConfig();
+  mySUI.returnOK();
 }
 
 void setupMenus()
@@ -504,6 +515,7 @@ void setupMenus()
   settingsMenu->addCommand(settings_dht_key, set_dht, settings_dht_help);
   settingsMenu->addCommand(settings_analog_key, set_analog, settings_analog_help);
   settingsMenu->addCommand(settings_show_key, show_info);
+  settingsMenu->addCommand(settings_clear_key, clear_info);
 }
 #endif
 
