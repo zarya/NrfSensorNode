@@ -15,6 +15,9 @@
 //#define DHTTYPE DHT21
 //#define DHTTYPE DHT22
 
+// Report vcc value
+#define CONFIG_BATTERY
+
 // Enable onewire temp support
 #define CONFIG_ONEWIRE
 
@@ -27,7 +30,7 @@
 //Receiver
 #define RECEIVER
 
-#define serial_baud_rate           57600
+#define serial_baud_rate          115200 
 #define serial_input_terminator   '\n'
 
 #define NETWORK_MASTER 0

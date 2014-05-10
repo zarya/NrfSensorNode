@@ -27,10 +27,10 @@ typedef struct deviceInfo {
   uint8_t p0_debounce; //byte 10
   uint8_t p1_debounce; //byte 11
   boolean onewire; //byte 12
-  uint8_t analog[8]; //byte 13-21
-  uint8_t dht; //byte 22
-  uint8_t digital[7]; //byte 23-30
-  uint8_t leaf;
+  uint8_t analog[8]; //byte 13-20
+  uint8_t dht; //byte 21
+  uint8_t digital[7]; //byte 22-28
+  uint8_t leaf; // 29
 } deviceInfo;
 
 // Structure of our payload

@@ -1,4 +1,4 @@
-#include <arduino.h>
+#include <Arduino.h>
 #include "printf.h"
 #include <RF24Network.h>
 #include <RF24.h>
@@ -309,12 +309,44 @@ void readDHTSensor() {
     int16_t h = dht.readHumidity();
     int16_t t = dht.readTemperature();
     if (isnan(t) || isnan(h)) {
+        IF_DEBUG(printf_P(PSTR("DHT: Error\n\r")));
         return;
     } 
     IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,t));
     send_packet('T', 0, t * 100, 0);
     delay(150);
     send_packet('H', 0, h, 0);
+}
+#endif
+
+#ifdef CONFIG_BATTERY
+// Function tnx to http://provideyourown.com/2012/secret-arduino-voltmeter-measure-battery-voltage/
+void readVcc() {
+  // Read 1.1V reference against AVcc
+  // set the reference to Vcc and the measurement to the internal 1.1V reference
+  #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+    ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+    ADMUX = _BV(MUX5) | _BV(MUX0);
+  #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+    ADMUX = _BV(MUX3) | _BV(MUX2);
+  #else
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #endif  
+ 
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Start conversion
+  while (bit_is_set(ADCSRA,ADSC)); // measuring
+ 
+  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+  uint8_t high = ADCH; // unlocks both
+ 
+  int16_t result = (high<<4) | low;
+ 
+  result = 112530 / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  send_packet('B',0, result, 0);
+  IF_DEBUG(printf_P(PSTR("VCC: %i\n\r"), result));
+  delay(150);
 }
 #endif
 
@@ -577,6 +609,7 @@ void setup(void)
 
   IF_DEBUG(printf_P(PSTR("*** Bootup\n\r"))); 
   delay(2000);
+
 }
 
 void loop(void)
@@ -620,6 +653,13 @@ void loop(void)
     readDHTSensor();
   }
 #endif
+
+  //Send vcc voltage
+#ifdef CONFIG_BATTERY
+  delay(150); //Make sure to wait till the receiver is done
+  readVcc();
+#endif
+
   if (NodeConfig.leaf == 0) {
       //Sleep for about 5sec.  
       for (int x=0; x <= 500; x++){
@@ -632,8 +672,21 @@ void loop(void)
   }else{
     IF_DEBUG(printf_P(PSTR("Sleeping\n\r")));
     IF_DEBUG(delay(10));
+    delay(500); // Give the radio time to transmit
     radio.powerDown();
     sleep.pwrDownMode();
-    sleep.sleepDelay(NodeConfig.leaf*1000);
+    if (NodeConfig.leaf == 245){
+        sleep.sleepInterrupt(0,RISING);
+        Pulse_0();
+        delay(NodeConfig.p0_debounce * 100);
+    }
+    if(NodeConfig.leaf == 255){
+        sleep.sleepInterrupt(1,RISING);
+        Pulse_1();
+        delay(NodeConfig.p1_debounce * 100);
+    }
+    if(NodeConfig.leaf < 245) {
+        sleep.sleepDelay(NodeConfig.leaf*1000);
+    }
   }
 }
