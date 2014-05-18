@@ -698,7 +698,8 @@ void loop(void)
         delay(NodeConfig.p1_debounce * 100);
     }
     if(NodeConfig.leaf < 245) {
-        sleep.sleepDelay(NodeConfig.leaf*1000);
+        unsigned long sleeptime = NodeConfig.leaf*1000;
+        sleep.sleepDelay(sleeptime);
     }
   }
 }

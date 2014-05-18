@@ -18,6 +18,13 @@
 
 #include <stddef.h>
 
+/********** USER CONFIG **************/
+
+//#define DUAL_HEAD_RADIO
+//#define ENABLE_SLEEP_MODE
+
+/*************************************/
+
 // Stuff that is normally provided by Arduino
 #ifndef ARDUINO
 #include <stdint.h>
@@ -32,6 +39,9 @@ extern HardwareSPI SPI;
 #define IF_SERIAL_DEBUG(x) ({x;})
 #else
 #define IF_SERIAL_DEBUG(x)
+#if defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny85__)
+#define printf_P(...)
+#endif
 #endif
 
 // Avoid spurious warnings
@@ -44,6 +54,7 @@ extern HardwareSPI SPI;
 
 // Progmem is Arduino-specific
 #ifdef ARDUINO
+
 #include <avr/pgmspace.h>
 #define PRIPSTR "%S"
 #else
@@ -53,7 +64,7 @@ typedef uint16_t prog_uint16_t;
 #define printf_P printf
 #define strlen_P strlen
 #define PROGMEM
-#define pgm_read_word(p) (*(p)) 
+#define pgm_read_word(p) (*(p))
 #define PRIPSTR "%s"
 #endif
 

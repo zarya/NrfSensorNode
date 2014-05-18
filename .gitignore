@@ -1,1 +1,10 @@
 .build
+old_lib
+board/SP-*
+board/*.zip
+board/*.S#*
+board/*.b#*
+board/*.pro
+board/nrfsensornode_.brd
+board/eagle.epf
+network
