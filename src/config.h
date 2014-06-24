@@ -4,6 +4,9 @@
 // Enable OTA Config (requires RECEIVER to be enabled)
 #define OTA-CONFIG
 
+// Set the ADC reference to the internal 1.1v referece (ONLY ATMEGA238 and 168)
+//#define ADC_INTERNAL_REFERENCE
+
 // Enable the config menu
 #define CONFIG_MENU
 

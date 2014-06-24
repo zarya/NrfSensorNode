@@ -263,6 +263,9 @@ void get_onewire(void)
       //Delay 800ms wile doing network updates
       for (int x=0; x <= 80; x++){
         network.update();
+    #ifdef RECEIVER
+        receive_packet();
+    #endif
         delay(10);
       }
       
@@ -322,7 +325,7 @@ void readDHTSensor() {
 
 #ifdef CONFIG_BATTERY
 // Function tnx to http://provideyourown.com/2012/secret-arduino-voltmeter-measure-battery-voltage/
-void readVcc() {
+long readVcc() {
   // Read 1.1V reference against AVcc
   // set the reference to Vcc and the measurement to the internal 1.1V reference
   #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -345,9 +348,7 @@ void readVcc() {
   long result = (high<<8) | low;
 
   result = 112530L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-  send_packet('B',0, (int16_t) result, 0);
-  IF_DEBUG(printf_P(PSTR("VCC: %d\n\r"), result));
-  delay(150);
+  return result;
 }
 #endif
 
@@ -542,6 +543,7 @@ void saveConfig() {
 void read_analog(int pin) {
     int data = analogRead(pin);
     send_packet('A', (uint8_t) pin, (int16_t) data, 0);
+    IF_DEBUG(printf_P(PSTR("Analog %i: %i\n\r"), pin,data));
 }
 
 //Setup frunction
@@ -568,6 +570,10 @@ void setup(void)
   radio.setRetries(7,7);
   radio.printDetails();
   network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
+
+#ifdef ADC_INTERNAL_REFERENCE
+  analogReference(INTERNAL);
+#endif
 
 #ifdef WS2801
   strip.begin();
@@ -609,9 +615,11 @@ void setup(void)
   
   if (NodeConfig.p0) {
     attachInterrupt(0, Pulse_0, RISING);
+    digitalWrite(2,HIGH);
   }
   if (NodeConfig.p1) {
     attachInterrupt(1, Pulse_1, RISING);
+    digitalWrite(3,HIGH);
   }
 
 #ifdef DEBUG
@@ -669,7 +677,10 @@ void loop(void)
   //Send vcc voltage
 #ifdef CONFIG_BATTERY
   delay(150); //Make sure to wait till the receiver is done
-  readVcc();
+  long result = readVcc();
+  send_packet('B',0, (int16_t) result, 0);
+  IF_DEBUG(printf_P(PSTR("VCC: %d\n\r"), result));
+  delay(150);
 #endif
 
   if (NodeConfig.leaf == 0) {
