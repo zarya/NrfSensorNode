@@ -23,8 +23,8 @@ OneWire  ds(5);
 
 //Load DHT module
 #ifdef CONFIG_DHT
-#include "DHT.h"
-DHT dht(DHTPIN, DHTTYPE);
+#include "dht.h"
+dht DHT;
 #endif
 
 //load WS1801 module
@@ -32,6 +32,14 @@ DHT dht(DHTPIN, DHTTYPE);
 #include <SPI.h>
 #include <Adafruit_WS2801.h>
 Adafruit_WS2801 strip = Adafruit_WS2801(WS2801_LEDS, WS2801_DATA, WS2801_CLK);
+#endif
+
+//Load BMP085/180 libs
+#ifdef BMP085
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP085_U.h>
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 #endif
 
 //Initialize radio
@@ -307,11 +315,39 @@ void get_onewire(void)
 }
 #endif
 
+#ifdef BMP085
+//BMP085/180 sensor fuction
+void readBMP() {
+    /* Get a new sensor event */ 
+    sensors_event_t event;
+    bmp.getEvent(&event);
+    // Read sensor data
+    int16_t pressure = (int16_t)event.pressure;
+    IF_DEBUG(printf_P(PSTR("BMP: %i\n\r"),pressure));
+    Serial.println(event.pressure);
+}
+#endif
+
 #ifdef CONFIG_DHT
 //DHT Sensor function
 void readDHTSensor() {
-    int16_t h = dht.readHumidity();
-    int16_t t = dht.readTemperature();
+   #if DHTTYPE == 11
+   int chk = DHT.read11(DHTPIN);
+   #endif
+   #if DHTTYPE == 21 
+   int chk = DHT.read21(DHTPIN);
+   #endif
+   #if DHTTYPE == 22 
+   int chk = DHT.read22(DHTPIN);
+   #endif
+   #if DHTTYPE == 44 
+   int chk = DHT.read44(DHTPIN);
+   #endif
+
+   if (chk == DHTLIB_ERROR_CHECKSUM or chk == DHTLIB_ERROR_TIMEOUT)
+        IF_DEBUG(printf_P(PSTR("DHT Error")));
+    int16_t h = DHT.humidity; 
+    int16_t t = DHT.temperature;
     if (isnan(t) || isnan(h)) {
         IF_DEBUG(printf_P(PSTR("DHT: Error\n\r")));
         return;
@@ -584,8 +620,9 @@ void setup(void)
   strip.show();
 #endif
 
-#ifdef CONFIG_DHT
-  dht.begin();
+#ifdef BMP085
+  if(!bmp.begin())
+    IF_DEBUG(printf_P(PSTR("*** No BMP Detected")));
 #endif
 
 #ifdef RECEIVER
@@ -672,6 +709,11 @@ void loop(void)
   if (NodeConfig.dht > 0) {
     readDHTSensor();
   }
+#endif
+
+
+#ifdef BMP085
+  readBMP();
 #endif
 
   //Send vcc voltage

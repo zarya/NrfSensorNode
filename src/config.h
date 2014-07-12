@@ -14,9 +14,10 @@
 #define CONFIG_DHT
 
 #define DHTPIN 3 
-#define DHTTYPE DHT11
-//#define DHTTYPE DHT21
-//#define DHTTYPE DHT22
+#define DHTTYPE 44 
+//#define DHTTYPE 21
+//#define DHTTYPE 22
+//#define DHTTYPE 44
 
 // Report vcc value
 #define CONFIG_BATTERY
@@ -29,6 +30,9 @@
 #define WS2801_DATA 9 
 #define WS2801_CLK 6
 #define WS2801_LEDS 1 
+
+// Enable BMP085 / BMP180 support
+//#define BMP085
 
 //Receiver
 #define RECEIVER
