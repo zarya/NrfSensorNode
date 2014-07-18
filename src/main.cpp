@@ -27,6 +27,11 @@ OneWire  ds(5);
 dht DHT;
 #endif
 
+#ifdef HTU21D
+#include <Adafruit_HTU21DF.h>
+Adafruit_HTU21DF htu = Adafruit_HTU21DF();
+#endif
+
 //load WS1801 module
 #ifdef WS2801
 #include <SPI.h>
@@ -331,28 +336,38 @@ void readBMP() {
 #ifdef CONFIG_DHT
 //DHT Sensor function
 void readDHTSensor() {
-   #if DHTTYPE == 11
-   int chk = DHT.read11(DHTPIN);
-   #endif
-   #if DHTTYPE == 21 
-   int chk = DHT.read21(DHTPIN);
-   #endif
-   #if DHTTYPE == 22 
-   int chk = DHT.read22(DHTPIN);
-   #endif
-   #if DHTTYPE == 44 
-   int chk = DHT.read44(DHTPIN);
-   #endif
+    #if DHTTYPE == 11
+    int chk = DHT.read11(DHTPIN);
+    #endif
+    #if DHTTYPE == 21 
+    int chk = DHT.read21(DHTPIN);
+    #endif
+    #if DHTTYPE == 22 
+    int chk = DHT.read22(DHTPIN);
+    #endif
+    #if DHTTYPE == 44 
+    int chk = DHT.read44(DHTPIN);
+    #endif
 
-   if (chk == DHTLIB_ERROR_CHECKSUM or chk == DHTLIB_ERROR_TIMEOUT)
-        IF_DEBUG(printf_P(PSTR("DHT Error")));
-    int16_t h = DHT.humidity; 
-    int16_t t = DHT.temperature;
-    if (isnan(t) || isnan(h)) {
+    if (chk == DHTLIB_ERROR_CHECKSUM or chk == DHTLIB_ERROR_TIMEOUT) {
         IF_DEBUG(printf_P(PSTR("DHT: Error\n\r")));
         return;
-    } 
+    }
+    int16_t h = DHT.humidity; 
+    int16_t t = DHT.temperature;
     IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,t));
+    send_packet('T', 0, t * 100, 0);
+    delay(150);
+    send_packet('H', 0, h, 0);
+}
+#endif
+
+#ifdef HTU21D 
+//HTU21D Sensor function
+void readHTU21DSensor() {
+    int16_t h = htu.readHumidity(); 
+    int16_t t = htu.readTemperature();
+    IF_DEBUG(printf_P(PSTR("HTU21D: H = %i T = %i\n\r"),h,t));
     send_packet('T', 0, t * 100, 0);
     delay(150);
     send_packet('H', 0, h, 0);
@@ -625,6 +640,11 @@ void setup(void)
     IF_DEBUG(printf_P(PSTR("*** No BMP Detected")));
 #endif
 
+#ifdef HTU21D
+  if (!htu.begin())
+    IF_DEBUG(printf_P(PSTR("*** No HTU21D Detected")));
+#endif
+
 #ifdef RECEIVER
   if (NodeConfig.digital[0] == 1) {
     pinMode(2,OUTPUT);
@@ -710,6 +730,11 @@ void loop(void)
     readDHTSensor();
   }
 #endif
+
+#ifdef HTU21D
+    readHTU21DSensor();
+#endif
+
 
 
 #ifdef BMP085
