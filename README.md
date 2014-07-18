@@ -8,7 +8,9 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 # Features
 * Serial config menu
 * Onewire bus (DS18S20,DS18B20)
-* DHT11,DHT21,DHT22 Humidity and Temperature sensor
+* DHT11,DHT21,DHT22,DHT44 Humidity and Temperature sensor
+* HTU21D Humidity and Temperature sensor
+* BMP085/180 pressure sensor support
 * 2 x Interrupt driven pulse inputs
 * 8 x Analog pin input
 * OTA-Config
