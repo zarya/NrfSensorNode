@@ -354,9 +354,9 @@ void readDHTSensor() {
         return;
     }
     int16_t h = DHT.humidity; 
-    int16_t t = DHT.temperature;
-    IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,t));
-    send_packet('T', 0, t * 100, 0);
+    float t = DHT.temperature * 100;
+    IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,(int16_t)t));
+    send_packet('T', 0, (int16_t)t, 0);
     delay(150);
     send_packet('H', 0, h, 0);
 }
