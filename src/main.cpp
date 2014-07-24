@@ -366,9 +366,9 @@ void readDHTSensor() {
 //HTU21D Sensor function
 void readHTU21DSensor() {
     int16_t h = htu.readHumidity(); 
-    int16_t t = htu.readTemperature();
-    IF_DEBUG(printf_P(PSTR("HTU21D: H = %i T = %i\n\r"),h,t));
-    send_packet('T', 0, t * 100, 0);
+    float t = htu.readTemperature() * 100;
+    IF_DEBUG(printf_P(PSTR("HTU21D: H = %i T = %i\n\r"),h,(int16_t)t));
+    send_packet('T', 0, (int16_t)t, 0);
     delay(150);
     send_packet('H', 0, h, 0);
 }
@@ -617,6 +617,7 @@ void setup(void)
   loadConfig();
   SPI.begin();
   radio.begin();
+  radio.setPALevel(RF24_PA_HIGH);
   radio.setDataRate(RF24_250KBPS);
   radio.setRetries(7,7);
   radio.printDetails();
@@ -732,11 +733,10 @@ void loop(void)
 #endif
 
 #ifdef HTU21D
-    readHTU21DSensor();
+  readHTU21DSensor();
 #endif
 
-
-
+  //Read the BMP085/180 sensor
 #ifdef BMP085
   readBMP();
 #endif
@@ -767,17 +767,20 @@ void loop(void)
     sleep.pwrDownMode();
     if (NodeConfig.leaf == 245){
         sleep.sleepInterrupt(0,RISING);
+        radio.powerUp();
         Pulse_0();
         delay(NodeConfig.p0_debounce * 100);
     }
     if(NodeConfig.leaf == 255){
         sleep.sleepInterrupt(1,RISING);
+        radio.powerUp();
         Pulse_1();
         delay(NodeConfig.p1_debounce * 100);
     }
     if(NodeConfig.leaf < 245) {
         unsigned long sleeptime = NodeConfig.leaf*1000;
         sleep.sleepDelay(sleeptime);
+        radio.powerUp();
     }
   }
 }
