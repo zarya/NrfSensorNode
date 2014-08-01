@@ -23,7 +23,7 @@ OneWire  ds(5);
 
 //Load DHT module
 #ifdef CONFIG_DHT
-#include "dht.h"
+#include "DHT.h"
 dht DHT;
 #endif
 
@@ -327,9 +327,8 @@ void readBMP() {
     sensors_event_t event;
     bmp.getEvent(&event);
     // Read sensor data
-    int16_t pressure = (int16_t)event.pressure;
-    IF_DEBUG(printf_P(PSTR("BMP: %i\n\r"),pressure));
-    Serial.println(event.pressure);
+    IF_DEBUG(printf_P(PSTR("BMP: %i\n\r"),(int16_t)event.pressure));
+    send_packet('D', 0, (int16_t)event.pressure,0); 
 }
 #endif
 
