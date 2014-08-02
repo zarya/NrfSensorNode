@@ -23,7 +23,7 @@ OneWire  ds(5);
 
 //Load DHT module
 #ifdef CONFIG_DHT
-#include "DHT.h"
+#include "dht.h"
 dht DHT;
 #endif
 
