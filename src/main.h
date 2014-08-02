@@ -6,7 +6,7 @@
 #endif
 
 #ifdef CONFIG_DHT
-#include "DHT.h"
+#include "dht.h"
 #endif
 
 #define MS_PER_HOUR    3.6e6
