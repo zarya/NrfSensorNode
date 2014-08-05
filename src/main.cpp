@@ -354,8 +354,10 @@ void readDHTSensor() {
     }
     int16_t h = DHT.humidity; 
     float t = DHT.temperature * 100;
+    int negative = 0;
+    if (t < 0) negative = 1;
     IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,(int16_t)t));
-    send_packet('T', 0, (int16_t)t, 0);
+    send_packet('T', 0, (int16_t)t, negative);
     delay(150);
     send_packet('H', 0, h, 0);
 }
@@ -617,8 +619,6 @@ void setup(void)
   SPI.begin();
   radio.begin();
   radio.setPALevel(RF24_PA_HIGH);
-  radio.setDataRate(RF24_250KBPS);
-  radio.setRetries(7,7);
   radio.printDetails();
   network.begin(NodeConfig.NetworkChannel, NodeConfig.NetworkNodeID);
 

@@ -20,7 +20,7 @@
 #define DHTTYPE 44
 
 // Enable HTU21D Support
-#define HTU21D
+//#define HTU21D
 
 // Report vcc value
 #define CONFIG_BATTERY
