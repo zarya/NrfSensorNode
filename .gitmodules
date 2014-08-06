@@ -1,3 +1,21 @@
 [submodule "lib/RF24Network"]
 	path = lib/RF24Network
 	url = https://github.com/TMRh20/RF24Network.git
+[submodule "lib/Adafruit-WS2801"]
+	path = lib/Adafruit-WS2801
+	url = https://github.com/adafruit/Adafruit-WS2801-Library.git
+[submodule "lib/Adafruit_BMP085_Unified"]
+	path = lib/Adafruit_BMP085_Unified
+	url = https://github.com/adafruit/Adafruit_BMP085_Unified.git
+[submodule "lib/Adafruit_HTU21DF_Library"]
+	path = lib/Adafruit_HTU21DF_Library
+	url = https://github.com/adafruit/Adafruit_HTU21DF_Library.git
+[submodule "lib/Adafruit_Sensor"]
+	path = lib/Adafruit_Sensor
+	url = https://github.com/adafruit/Adafruit_Sensor.git
+[submodule "lib/SerialUI"]
+	path = lib/SerialUI
+	url = https://github.com/psychogenic/SerialUI.git
+[submodule "lib/Sleep_n0m1"]
+	path = lib/Sleep_n0m1
+	url = https://github.com/n0m1/Sleep_n0m1.git
