@@ -327,8 +327,12 @@ void readBMP() {
     sensors_event_t event;
     bmp.getEvent(&event);
     // Read sensor data
-    IF_DEBUG(printf_P(PSTR("BMP: %i\n\r"),(int16_t)event.pressure));
-    send_packet('D', 0, (int16_t)event.pressure,0); 
+    if (event.pressure) {
+        IF_DEBUG(printf_P(PSTR("BMP: %i\n\r"),(int16_t)event.pressure));
+        send_packet('D', 0, (int16_t)event.pressure,0);
+    } else {
+        IF_DEBUG(printf_P(PSTR("BMP: Error")));
+    }
 }
 #endif
 
@@ -410,7 +414,7 @@ void clear_info()
 {
   for (unsigned int t=0; t<sizeof(NodeConfig); t++)
     EEPROM.write(CONFIG_START + t, 0);
-  mySUI.println("Factory reset");
+  mySUI.println("Factory reset please reboot");
   show_info();
 }
 
