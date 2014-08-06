@@ -43,6 +43,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | Q | Ping reply |
 | C | Config data |
 | O | Output pin data |
+| D | Pressure |
 
 
 ### Packet options
