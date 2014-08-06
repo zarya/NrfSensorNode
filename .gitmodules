@@ -19,3 +19,6 @@
 [submodule "lib/Sleep_n0m1"]
 	path = lib/Sleep_n0m1
 	url = https://github.com/n0m1/Sleep_n0m1.git
+[submodule "lib/RF24"]
+	path = lib/RF24
+	url = https://github.com/TMRh20/RF24.git
