@@ -408,11 +408,8 @@ long readVcc() {
 //Factory default
 void clear_info()
 {
-  //                                                                                  d             d
-  //                                                             1    a a a a a a a a h d d d d d d 1
-  //cnfve, NetworkChannel, NodeID,p0,p1,p0db,p1db,      w,   0,1,2,3,4,5,6,7,t,2,3,4,5,6,9,0 leaf
-  deviceInfo NodeConfig = {CONFIG_VERSION,80,5,false,false,15,15,true,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  saveConfig();
+  for (unsigned int t=0; t<sizeof(NodeConfig); t++)
+    EEPROM.write(CONFIG_START + t, 0);
   mySUI.println("Factory reset");
   show_info();
 }
