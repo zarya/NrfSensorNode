@@ -55,9 +55,7 @@ struct config_payload_t
 #ifdef WS2801
 struct ws2801_payload_t
 {
-  uint8_t func;
-  uint8_t l_led;
-  uint8_t h_led;
+  uint8_t led;
   uint8_t r;
   uint8_t g;
   uint8_t b;

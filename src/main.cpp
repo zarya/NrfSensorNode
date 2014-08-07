@@ -159,9 +159,14 @@ void handle_ws2801(RF24NetworkHeader& header)
 {
     ws2801_payload_t ws_payload;
     network.read(header,&ws_payload,sizeof(ws_payload));
-    IF_DEBUG(printf_P(PSTR("WS2801: %i %i %i %i %i %i\n\r"),ws_payload.func,ws_payload.l_led,ws_payload.h_led,ws_payload.r,ws_payload.g,ws_payload.b));
-    uint32_t color = (ws_payload.r << 16) | (ws_payload.g << 8) | ws_payload.b;
-    strip.setPixelColor(ws_payload.l_led, color);
+    IF_DEBUG(printf_P(PSTR("WS2801: %i %i %i %i\n\r"),ws_payload.led,ws_payload.r,ws_payload.g,ws_payload.b));
+    uint32_t c;
+    c = ws_payload.r;
+    c <<= 8;
+    c |= ws_payload.g;
+    c <<= 8;
+    c |= ws_payload.b;
+    strip.setPixelColor(ws_payload.led, c);
     strip.show();
 }
 #endif
