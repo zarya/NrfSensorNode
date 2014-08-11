@@ -43,19 +43,6 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 | O | Output pin data |
 | D | Pressure |
 
-
-### Packet options
-| Bit | Description |
-|-----|-------------|
-| 1 | Negative value|
-| 2 | Unused | 
-| 3 | Unused |
-| 4 | Unused |
-| 5 | Unused |
-| 6 | Unused |
-| 7 | Unused |
-| 8 | Unused |
-
 ## Config Payload
 | name | type | description |
 -------|------|-------------|
