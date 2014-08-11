@@ -366,7 +366,7 @@ void readDHTSensor() {
     }
     float h = (float)DHT.humidity; 
     float t = DHT.temperature;
-    IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,(int16_t)t));
+    IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),(int16_t)h,(int16_t)t));
     send_packet('T', 0, t);
     delay(150);
     send_packet('H', 0, h);
@@ -378,7 +378,7 @@ void readDHTSensor() {
 void readHTU21DSensor() {
     float h = (float)htu.readHumidity(); 
     float t = htu.readTemperature();
-    IF_DEBUG(printf_P(PSTR("HTU21D: H = %i T = %i\n\r"),h,(int16_t)t));
+    IF_DEBUG(printf_P(PSTR("HTU21D: H = %i T = %i\n\r"),(int16_t)h,(int16_t)t));
     send_packet('T', 0, t);
     delay(150);
     send_packet('H', 0, h);
