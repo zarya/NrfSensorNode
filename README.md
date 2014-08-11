@@ -16,9 +16,9 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 * OTA-Config
 * PWM pin control
 * IO pin control
+* WS2801 ledstrip support
 
 ## Wishlist
-* WS2801 ledstrip support
 * Serial camera support
 
 # Structs
