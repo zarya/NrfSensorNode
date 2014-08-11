@@ -38,9 +38,7 @@ struct payload_t
 {
   char type;
   uint8_t sensor;
-  uint8_t value_high;
-  uint8_t value_low;
-  uint8_t options;
+  float value;
 };
 
 #ifdef OTA-CONFIG
@@ -55,7 +53,9 @@ struct config_payload_t
 #ifdef WS2801
 struct ws2801_payload_t
 {
-  uint8_t led;
+  uint8_t func;
+  uint8_t led_l;
+  uint8_t led_h;
   uint8_t r;
   uint8_t g;
   uint8_t b;
@@ -87,6 +87,7 @@ void receive_packet();
 
 #endif
 void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options);
+void send_packet_f(char _type, uint8_t _id, float _value, uint8_t options);
 void Pulse_0();
 void Pulse_1();
 #ifdef CONFIG_ONEWIRE

@@ -159,14 +159,21 @@ void handle_ws2801(RF24NetworkHeader& header)
 {
     ws2801_payload_t ws_payload;
     network.read(header,&ws_payload,sizeof(ws_payload));
-    IF_DEBUG(printf_P(PSTR("WS2801: %i %i %i %i\n\r"),ws_payload.led,ws_payload.r,ws_payload.g,ws_payload.b));
+    IF_DEBUG(printf_P(PSTR("WS2801: %i %i %i %i %i %i (%i)\n\r"),ws_payload.func,ws_payload.led_l,ws_payload.led_h,ws_payload.r,ws_payload.g,ws_payload.b,ws_payload.led_h,sizeof(header)));
     uint32_t c;
     c = ws_payload.r;
     c <<= 8;
     c |= ws_payload.g;
     c <<= 8;
     c |= ws_payload.b;
-    strip.setPixelColor(ws_payload.led, c);
+    strip.setPixelColor(ws_payload.led_l, c);
+    if (ws_payload.led_h>0) {
+        int i;
+        for(i = ws_payload.led_l+1; i <= ws_payload.led_h; i++)
+        {
+            strip.setPixelColor(i, c);
+        }
+    }
     strip.show();
 }
 #endif
@@ -208,12 +215,8 @@ void receive_packet() {
 #endif
 
 //Send the packet over the NRF
-void send_packet(char _type, uint8_t _id, int16_t _value, uint8_t options) {
-    uint8_t value_low;
-    uint8_t value_high;
-    value_low = (_value & 0xff); 
-    value_high = (_value >> 4) & 0xff;
-    payload_t payload = { _type, _id, value_high, value_low, options };
+void send_packet(char _type, uint8_t _id, float _value) {
+    payload_t payload = { _type, _id, _value };
     RF24NetworkHeader header(NETWORK_MASTER,'S');
     if (!network.write(header,&payload,sizeof(payload)))
         IF_DEBUG(printf_P(PSTR("*** WARNING *** Packet not send.\n\r")));
@@ -228,7 +231,7 @@ void Pulse_0() {
 
     P0previous = P0now;
     IF_DEBUG(printf_P(PSTR("P0 Pulse\n\r")));
-    send_packet('P', 0, 1, 0);
+    send_packet('P', 0, 1);
 }
 
 //P1 Interrupt function
@@ -239,8 +242,8 @@ void Pulse_1() {
     if (P1time < NodeConfig.p1_debounce * 100) return;
 
     P1previous = P1now;
-    IF_DEBUG(printf_P(PSTR("P0 Pulse\n\r")));
-    send_packet('P', 1, 1, 0);
+    IF_DEBUG(printf_P(PSTR("P1 Pulse\n\r")));
+    send_packet('P', 1, 1);
 }
 
 #ifdef CONFIG_ONEWIRE
@@ -318,7 +321,7 @@ void get_onewire(void)
       celsius = (float)raw / 17.0;
       float temperatuur = celsius * 100;
       IF_DEBUG(printf_P(PSTR("1W: %i T = %i %i\n\r"),addr[7],(int16_t) temperatuur,negative));
-      send_packet('T', (uint8_t) addr[7], (int16_t) temperatuur,negative); 
+      send_packet('T', (uint8_t) addr[7], celsius); 
       delay(20);
   }
   ds.reset_search();
@@ -334,7 +337,7 @@ void readBMP() {
     // Read sensor data
     if (event.pressure) {
         IF_DEBUG(printf_P(PSTR("BMP: %i\n\r"),(int16_t)event.pressure));
-        send_packet('D', 0, (int16_t)event.pressure,0);
+        send_packet('D', 0, event.pressure);
     } else {
         IF_DEBUG(printf_P(PSTR("BMP: Error")));
     }
@@ -361,26 +364,24 @@ void readDHTSensor() {
         IF_DEBUG(printf_P(PSTR("DHT: Error\n\r")));
         return;
     }
-    int16_t h = DHT.humidity; 
-    float t = DHT.temperature * 100;
-    int negative = 0;
-    if (t < 0) negative = 1;
+    float h = (float)DHT.humidity; 
+    float t = DHT.temperature;
     IF_DEBUG(printf_P(PSTR("DHT: H = %i T = %i\n\r"),h,(int16_t)t));
-    send_packet('T', 0, (int16_t)t, negative);
+    send_packet('T', 0, t);
     delay(150);
-    send_packet('H', 0, h, 0);
+    send_packet('H', 0, h);
 }
 #endif
 
 #ifdef HTU21D 
 //HTU21D Sensor function
 void readHTU21DSensor() {
-    int16_t h = htu.readHumidity(); 
-    float t = htu.readTemperature() * 100;
+    float h = (float)htu.readHumidity(); 
+    float t = htu.readTemperature();
     IF_DEBUG(printf_P(PSTR("HTU21D: H = %i T = %i\n\r"),h,(int16_t)t));
-    send_packet('T', 0, (int16_t)t, 0);
+    send_packet('T', 0, t);
     delay(150);
-    send_packet('H', 0, h, 0);
+    send_packet('H', 0, h);
 }
 #endif
 
@@ -408,7 +409,7 @@ long readVcc() {
  
   long result = (high<<8) | low;
 
-  result = 112530L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return result;
 }
 #endif
@@ -600,7 +601,7 @@ void saveConfig() {
 //Read analog pin value 
 void read_analog(int pin) {
     int data = analogRead(pin);
-    send_packet('A', (uint8_t) pin, (int16_t) data, 0);
+    send_packet('A', (uint8_t) pin, (float)data);
     IF_DEBUG(printf_P(PSTR("Analog %i: %i\n\r"), pin,data));
 }
 
@@ -749,9 +750,10 @@ void loop(void)
   //Send vcc voltage
 #ifdef CONFIG_BATTERY
   delay(150); //Make sure to wait till the receiver is done
-  long result = readVcc();
-  send_packet('B',0, (int16_t) result, 0);
-  IF_DEBUG(printf_P(PSTR("VCC: %d\n\r"), result));
+  long vcc = readVcc();
+  float result = (float)vcc / 1000;
+  send_packet('B',0, result);
+  IF_DEBUG(printf_P(PSTR("VCC: %d\n\r"), vcc));
   delay(150);
 #endif
 
