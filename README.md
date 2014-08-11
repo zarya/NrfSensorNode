@@ -27,9 +27,7 @@ This is the software for the NRF24L01 Sensor node see https://gigafreak.net/stat
 -------|------|-------------|
 | type | char | Packet type |
 | sensor | uint8 | Sensor ID |
-| value_high | uint 8 | Higher 8 bits of the int16 |
-| value_low| uint8 | Lower 8 bits of the int16 |
-| options | uint8 | Option char |
+| value | float | Sensor value | 
  
 ### Packet types
 
