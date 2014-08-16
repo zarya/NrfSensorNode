@@ -22,3 +22,9 @@
 [submodule "lib/RF24"]
 	path = lib/RF24
 	url = https://github.com/TMRh20/RF24.git
+[submodule "lib/I2C"]
+	path = lib/I2C
+	url = https://github.com/rambo/I2C
+[submodule "lib/AS3935_Wire"]
+	path = lib/AS3935_Wire
+	url = https://github.com/THP-JOE/AS3935_Wire.git
