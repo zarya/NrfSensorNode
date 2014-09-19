@@ -755,6 +755,7 @@ void setup(void)
 #ifndef CONFIG_AS3935 
     if (NodeConfig.p0)
     {
+        pinMode(2,OUTPUT);
         attachInterrupt(0, Pulse_0, RISING);
         digitalWrite(2,HIGH);
     }
@@ -764,6 +765,7 @@ void setup(void)
 #endif
     if (NodeConfig.p1)
     {
+        pinMode(3,OUTPUT);
         attachInterrupt(1, Pulse_1, RISING);
         digitalWrite(3,HIGH);
     }
@@ -843,6 +845,8 @@ void loop(void)
 #ifdef RECEIVER
             receive_packet();
 #endif
+            //Send interrupt pulses
+            Pulse();
             delay(10);
         }
     }
