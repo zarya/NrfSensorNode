@@ -296,7 +296,6 @@ void Pulse()
 //Onewire temp sensor function
 void get_onewire(void)
 {
-    float celsius;
     byte i;
     byte present = 0;
     byte type_s;
@@ -363,16 +362,14 @@ void get_onewire(void)
                 raw = raw << 1; // 11 bit res, 375 ms
             // default is 12 bit resolution, 750 ms conversion time
         }
-        int negative = 0;
-        if ( raw & 0x8000 )
-        {
-            raw ^= 0xffff;
-            raw++;
-            negative = 1;
+        float celsius;
+        celsius = 1;
+        if(raw & 0x8000) {
+            raw = (raw ^ 0xffff) + 1;
+            celsius = -1;
         }
-        celsius = (float)raw / 17.0;
-        float temperatuur = celsius * 100;
-        IF_DEBUG(printf_P(PSTR("1W: %i T = %i %i\n\r"),addr[7],(int16_t) temperatuur,negative));
+        celsius *= (float)raw / 16.0;
+        IF_DEBUG(printf_P(PSTR("1W: %i T = %d\n\r"),addr[7], (int16_t)celsius));
         send_packet('T', (uint8_t) addr[7], celsius); 
         delay(20);
     }
